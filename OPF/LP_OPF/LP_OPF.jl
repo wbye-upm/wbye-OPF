@@ -36,6 +36,9 @@ function LP_OPF(dLinea::DataFrame, dGen::DataFrame, dNodo::DataFrame, nN::Int, n
     elseif solver == "HiGHS"
         m = Model(HiGHS.Optimizer)
         set_silent(m)
+        h = Highs_create()
+        Highs_setStringOptionValue(h, "mip_rel_gap", "0.02")
+        Highs_run(h)
     
     # En caso de error
     else
@@ -81,6 +84,9 @@ function LP_OPF(dLinea::DataFrame, dGen::DataFrame, dNodo::DataFrame, nN::Int, n
     # Restricción de potencia mínima y máxima de los generadores
     @constraint(m, [i in 1:nN], P_Gen_lb[i] * Gen_Status[i] <= P_G[i] <= P_Gen_ub[i] * Gen_Status[i])
 
+    # Se selecciona el nodo 1 como nodo de refenrecia
+    # Necesario en caso de HiGHS para evitar un bucle infinito al resolver la optimización
+    @constraint(m, θ[1] == 0)
 
     ########## RESOLUCIÓN ##########
     optimize!(m) # Optimización
