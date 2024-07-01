@@ -36,9 +36,6 @@ function LP_OPF(dLinea::DataFrame, dGen::DataFrame, dNodo::DataFrame, nN::Int, n
     elseif solver == "HiGHS"
         m = Model(HiGHS.Optimizer)
         set_silent(m)
-        h = Highs_create()
-        Highs_setStringOptionValue(h, "mip_rel_gap", "0.02")
-        Highs_run(h)
     
     # En caso de error
     else
