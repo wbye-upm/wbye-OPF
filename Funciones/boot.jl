@@ -24,7 +24,7 @@ function boot()
     println("Test 1 - Completado")
     println("Test 2 - Completado")
     println("Test 3...")
-    AC_OPF(test_linea, test_generador, test_nodos, 2, 1, 1, "Ipopt (Local)")
+    LP_OPF(test_linea, test_generador, test_nodos, 2, 1, 1, "Ipopt")
 
     limpiarTerminal()
 
@@ -32,7 +32,16 @@ function boot()
     println("Test 2 - Completado")
     println("Test 3 - Completado")
     println("Test 4...")
-    AC_OPF(test_linea, test_generador, test_nodos, 2, 1, 1, "Couenne (Global)")
+    AC_OPF(test_linea, test_generador, test_nodos, 2, 1, 1, "Ipopt")
+
+    limpiarTerminal()
+
+    println("Test 1 - Completado")
+    println("Test 2 - Completado")
+    println("Test 3 - Completado")
+    println("Test 4 - Completado")
+    println("Test 5...")
+    AC_OPF(test_linea, test_generador, test_nodos, 2, 1, 1, "Couenne")
 
     limpiarTerminal()
     
@@ -40,6 +49,7 @@ function boot()
     println("Test 2 - Completado")
     println("Test 3 - Completado")
     println("Test 4 - Completado")
+    println("Test 5 - Completado")
     sleep(1)
     
 end

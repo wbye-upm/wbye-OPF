@@ -35,6 +35,13 @@ function LP_OPF(dLinea::DataFrame, dGen::DataFrame, dNodo::DataFrame, nN::Int, n
     # Para el solver HiGHS
     elseif solver == "HiGHS"
         m = Model(HiGHS.Optimizer)
+        # Se deshabilita las salidas por defecto que tiene el optimizador
+        set_silent(m)
+
+    # Para el solver Ipopt
+    elseif solver == "Ipopt"
+        m = Model(Ipopt.Optimizer)
+        # Se deshabilita las salidas por defecto que tiene el optimizador
         set_silent(m)
     
     # En caso de error

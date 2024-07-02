@@ -1,6 +1,6 @@
 # Esta función gestiona la variable del modelo y los DataFrames de la solución de la Optimización
 
-function gestorResultados(modelo, solGeneradores, solFlujos, solAngulos)
+function gestorResultados(modelo, solGeneradores, solFlujos, solAngulos, rutaM, opfTipo, solver)
 
     # modelo: El modelo que se ha creado para optimizar
     # solGeneradores: DataFrame con la solución de los generadores
@@ -24,6 +24,60 @@ function gestorResultados(modelo, solGeneradores, solFlujos, solAngulos)
         # En caso de haber llegado al máximo de iteraciones
         elseif termination_status(modelo) == ITERATION_LIMIT
             println("Límite de iteraciones alcanzado")
+
+        end
+
+        # Preguntar al usuario si quiere ver el sistema eléctrico
+        # En caso de que la ruta exista
+        if rutaM != "None"
+            solucion = 0
+            # En caso de querer resolver un LP_OPF
+            if opfTipo == "LP-OPF"
+                # En caso de usar Gurobi
+                if solver == "Gurobi"
+                    solucion = solve_dc_opf(rutaM, Gurobi.Optimizer)
+                # En caso de usar HiGHS
+                elseif solver == "HiGHS"
+                    solucion = solve_dc_opf(rutaM, HiGHS.Optimizer)
+                # En caso de usar Ipopt
+                elseif solver == "Ipopt"
+                    solucion = solve_dc_opf(rutaM, Ipopt.Optimizer)
+                # En caso de error
+                else
+                    print("Error al cargar la resolución DC por PowerModels")
+                end
+
+            # En caso de querer resolver un AC_OPF
+            elseif opfTipo == "AC-OPF"
+                # En caso de usar Ipopt
+                if solver == "Ipopt"
+                    solucion = solve_ac_opf(rutaM, Ipopt.Optimizer)
+                # En caso de error
+                else
+                    print("Error al cargar la resolución AC por PowerModels")
+                end
+
+            # En caso de error
+            else
+                println("Error al cargar el tipo de solver en PowerModels")
+            end
+
+            limpiarTerminal()
+
+            println("\n¿Quiere ver gráficamente la red eléctrica seleccionada?")
+            println("Pulsa la tecla ENTER para confirmar o cualquier otra entrada para negar")
+            verGrafica = readline(stdin)
+            if verGrafica == ""
+                # Con el paquete de PowerPlots.jl se representa el sistema
+                powerplot(parse_file(rutaM))
+
+            else
+                println("\nNo se mostrará gráficamente")
+            end
+
+        # En caso de que la ruta no exista
+        else
+            println("Archivo del caso .m no encontrado\n")
 
         end
         
@@ -65,9 +119,15 @@ function gestorResultados(modelo, solGeneradores, solFlujos, solAngulos)
             println("\nLas tablas son demasiado grandes para imprimir por el terminal")
 
         end
-        
+
+        # Se imprime la solución obtenida en caso de utilizar el paquete PowerModels.jl
+        # En caso que exista el archivo .m
+        if solucion != 0
+            print("\nCoste final obtenido en PowerModels: ", round(solucion["objective"], digits = 2), "€/h")
+        end
+
         # Imprime en pantalla el coste final que se obtiene tras la optimización
-        println("\n\nCoste final: ", round(objective_value(modelo), digits = 2), " €/h")
+        println("\nCoste final con el programa: ", round(objective_value(modelo), digits = 2), " €/h")
 
         # Pregunta al usuario si quiere guardar los datos en un CSV
         println("\n¿Quiere guardar el resultado en un archivo CSV?")

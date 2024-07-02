@@ -13,11 +13,11 @@ function selectEstudio()
 
         # Según el tipo de OPF elegido, se pregunta el solver que se quiere emplear
         if opfTip == "LP-OPF"
-            listaACSolvers = ["Gurobi", "HiGHS"]
+            listaACSolvers = ["Gurobi", "HiGHS", "Ipopt"]
             s = elegirOpcion(listaACSolvers, "solver")
 
         elseif opfTip == "AC-OPF"
-            listaACSolvers = ["Ipopt (Local)", "Couenne (Global)"]
+            listaACSolvers = ["Ipopt", "Couenne"]
             s = elegirOpcion(listaACSolvers, "solver")
             
         end

@@ -23,16 +23,16 @@ function AC_OPF(dLinea::DataFrame, dGen::DataFrame, dNodos::DataFrame, nN::Int, 
     ########## INICIALIZAR MODELO ##########
     # Se crea el modelo "m" con la función de JuMP.Model() y tiene como argumento el optimizador "solver"
     # En el caso de elegir Ipopt
-    if solver == "Ipopt (Local)"
+    if solver == "Ipopt"
         m = Model(Ipopt.Optimizer)
         # Asignación del máximo de iteraciones
         set_optimizer_attribute(m, "max_iter", 3000)
-        # Se deshabilita las salidas por defecto que tiene el optimizador
         # set_optimizer_attribute(IpoptSolver, "print_level", 0)
+        # Se deshabilita las salidas por defecto que tiene el optimizador
         set_silent(m)
 
-    # En caso de elegir Couenne
-    elseif solver == "Couenne (Global)"
+    # En caso de elegir Couenne --- Se queda en bucle infinito para problemas medianos/grandes
+    elseif solver == "Couenne"
         m = Model(() -> AmplNLWriter.Optimizer(Couenne_jll.amplexe))
 
     # En caso de que no se encuentre el OPF seleccionado
@@ -101,7 +101,7 @@ function AC_OPF(dLinea::DataFrame, dGen::DataFrame, dNodos::DataFrame, nN::Int, 
     end
 
     ########## RESOLUCIÓN ##########
-    optimize!(m)
+    optimize!(m)    # Optimización
 
     # Guardar solución en DataFrames en caso de encontrar solución óptima (global o local) o se ha llegado al máximo de iteraciones en caso de Ipopt
     if termination_status(m) == OPTIMAL || termination_status(m) == LOCALLY_SOLVED || termination_status(m) == ITERATION_LIMIT

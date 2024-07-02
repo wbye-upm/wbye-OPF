@@ -14,3 +14,10 @@ using SparseArrays      # Eficiencia en el código relacionadas a las matrices c
 using DataFrames        # Relacionado con las tablas
 using PrettyTables      # Estética para imprimir DataFrames en el terminal
 using CSV               # Gestión de CSV
+
+using Base.Filesystem   # Sistema de ficheros de la librería de Julia
+using PowerModels       # Paquete creada para resolver OPF directamente del archivo .m
+using PowerPlots        # Mostrar en un gráfica el sistema
+using Plots
+
+using Logging           # Paquete para ajustar los avisos que salen
