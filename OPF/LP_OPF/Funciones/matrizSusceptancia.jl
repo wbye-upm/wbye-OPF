@@ -10,7 +10,7 @@ function matrizSusceptancia(datos::DataFrame, numNodos::Int, numLineas::Int)
     A = SparseArrays.sparse(datos.F_BUS, 1:numLineas, 1, numNodos, numLineas) + SparseArrays.sparse(datos.T_BUS, 1:numLineas, -1, numNodos, numLineas)
 
     # Se crea un vector con los valores de la susceptancia de cada línea B = 1/X
-    B = 1 ./ (datos.X)
+    B = - 1 ./ (datos.X)
 
     # Una vez teniendo la Matriz de Incidencia "A" y el vector de Susceptancias "B"
     # Se puede crear la Matriz de Susceptancia "B_0":

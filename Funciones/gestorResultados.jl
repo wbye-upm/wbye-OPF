@@ -29,6 +29,7 @@ function gestorResultados(modelo, solGeneradores, solFlujos, solAngulos, rutaM, 
 
         # Preguntar al usuario si quiere ver el sistema eléctrico
         # En caso de que la ruta exista
+        solucion = 0
         if rutaM != "None"
             caso = parse_file(rutaM)
 
@@ -43,19 +44,18 @@ function gestorResultados(modelo, solGeneradores, solFlujos, solAngulos, rutaM, 
                 println("\nNo se mostrará gráficamente")
             end
 
-            solucion = 0
             # En caso de querer resolver un LP_OPF
             if opfTipo == "LP-OPF"
                 # Usando Gurobi
                 if solver == "Gurobi"
-                    pm = instantiate_model(rutaM, DCPPowerModel, PowerModels.build_opf)
+                    pm = instantiate_model(rutaM, DCMPPowerModel, PowerModels.build_opf)
                     solucion = optimize_model!(pm, optimizer=Gurobi.Optimizer)
                 # Usando HiGHS
                 elseif solver == "HiGHS"
                     solucion = solve_dc_opf(rutaM, HiGHS.Optimizer)
                 # Usando Ipopt
                 elseif solver == "Ipopt"
-                    solucion = solve_dc_opf(rutaM, Ipopt.Optimizer)
+                    solucion = solve_ac_opf(rutaM, Ipopt.Optimizer)
                 # Error
                 else
                     print("Error al cargar la resolución DC por PowerModels")

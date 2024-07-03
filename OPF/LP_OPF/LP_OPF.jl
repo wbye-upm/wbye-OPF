@@ -62,8 +62,8 @@ function LP_OPF(dLinea::DataFrame, dGen::DataFrame, dNodo::DataFrame, nN::Int, n
     ########## FUNCIÓN OBJETIVO ##########
     # El objetivo del problema es reducir el coste total que se calcula como ∑cᵢ·Pᵢ
     # Siendo:
-        # cᵢ el coste del Generador en el nodo i
-        # Pᵢ la potencia generada del Generador en el nodo i
+    #   cᵢ el coste del Generador en el nodo i
+    #   Pᵢ la potencia generada del Generador en el nodo i
     @objective(m, Min, sum((P_Cost0[i] + P_Cost1[i] * P_G[i] * bMVA + P_Cost2[i] * (P_G[i] * bMVA)^2) for i in 1:nN))
 
 
@@ -83,14 +83,14 @@ function LP_OPF(dLinea::DataFrame, dGen::DataFrame, dNodo::DataFrame, nN::Int, n
     # Restricción de potencia máxima por la línea
     # Siendo la potencia que circula en la linea que conecta los nodos i-j: Pᵢⱼ = Bᵢⱼ·(θᵢ-θⱼ) 
     # Su valor abosoluto debe ser menor que el dato de potencia max en dicha línea "dLinea.L_SMAX"
-    @constraint(m, [i in 1:nL], -dLinea.L_SMAX[i] * dLinea.status[i] / bMVA <= -B[dLinea.F_BUS[i], dLinea.T_BUS[i]] * (θ[dLinea.F_BUS[i]] - θ[dLinea.T_BUS[i]]) <= dLinea.L_SMAX[i] * dLinea.status[i] / bMVA)
+    @constraint(m, [i in 1:nL], -dLinea.L_SMAX[i] * dLinea.status[i] / bMVA <= B[dLinea.F_BUS[i], dLinea.T_BUS[i]] * (θ[dLinea.F_BUS[i]] - θ[dLinea.T_BUS[i]]) <= dLinea.L_SMAX[i] * dLinea.status[i] / bMVA)
 
     # Restricción de potencia mínima y máxima de los generadores
     @constraint(m, [i in 1:nN], P_Gen_lb[i] * Gen_Status[i] <= P_G[i] <= P_Gen_ub[i] * Gen_Status[i])
 
     # Se selecciona el nodo 1 como nodo de refenrecia
     # Necesario en caso de HiGHS para evitar un bucle infinito al resolver la optimización
-    # @constraint(m, θ[1] == 0)
+    @constraint(m, θ[1] == 0)
 
     ########## RESOLUCIÓN ##########
     optimize!(m) # Optimización
@@ -111,10 +111,10 @@ function LP_OPF(dLinea::DataFrame, dGen::DataFrame, dNodo::DataFrame, nN::Int, n
         # El flujo por la línea que conecta los nodos i-j es igual de la susceptancia de la línea por la diferencia de ángulos entre los nodos i-j
         # Pᵢⱼ = Bᵢⱼ · (θᵢ - θⱼ)
         for i in 1:nL
-            if value(-B[dLinea.F_BUS[i], dLinea.T_BUS[i]] * (θ[dLinea.F_BUS[i]] - θ[dLinea.T_BUS[i]])) > 0
-                push!(solFlujos, Dict(:F_BUS => (dLinea.F_BUS[i]), :T_BUS => (dLinea.T_BUS[i]), :FLUJO => round(value(-B[dLinea.F_BUS[i], dLinea.T_BUS[i]] * (θ[dLinea.F_BUS[i]] - θ[dLinea.T_BUS[i]])) * bMVA, digits = 2)))
-            elseif value(-B[dLinea.F_BUS[i], dLinea.T_BUS[i]] * (θ[dLinea.F_BUS[i]] - θ[dLinea.T_BUS[i]])) != 0
-                push!(solFlujos, Dict(:F_BUS => (dLinea.T_BUS[i]), :T_BUS => (dLinea.F_BUS[i]), :FLUJO => round(value(-B[dLinea.T_BUS[i], dLinea.F_BUS[i]] * (θ[dLinea.T_BUS[i]] - θ[dLinea.F_BUS[i]])) * bMVA, digits = 2)))
+            if value(B[dLinea.F_BUS[i], dLinea.T_BUS[i]] * (θ[dLinea.F_BUS[i]] - θ[dLinea.T_BUS[i]])) > 0
+                push!(solFlujos, Dict(:F_BUS => (dLinea.F_BUS[i]), :T_BUS => (dLinea.T_BUS[i]), :FLUJO => round(value(B[dLinea.F_BUS[i], dLinea.T_BUS[i]] * (θ[dLinea.F_BUS[i]] - θ[dLinea.T_BUS[i]])) * bMVA, digits = 2)))
+            elseif value(B[dLinea.F_BUS[i], dLinea.T_BUS[i]] * (θ[dLinea.F_BUS[i]] - θ[dLinea.T_BUS[i]])) != 0
+                push!(solFlujos, Dict(:F_BUS => (dLinea.T_BUS[i]), :T_BUS => (dLinea.F_BUS[i]), :FLUJO => round(value(B[dLinea.T_BUS[i], dLinea.F_BUS[i]] * (θ[dLinea.T_BUS[i]] - θ[dLinea.F_BUS[i]])) * bMVA, digits = 2)))
             end
         end
 
