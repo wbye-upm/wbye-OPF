@@ -30,29 +30,43 @@ function gestorResultados(modelo, solGeneradores, solFlujos, solAngulos, rutaM, 
         # Preguntar al usuario si quiere ver el sistema eléctrico
         # En caso de que la ruta exista
         if rutaM != "None"
+            caso = parse_file(rutaM)
+
+            println("\n¿Quiere ver gráficamente la red eléctrica seleccionada?")
+            println("Pulsa la tecla ENTER para confirmar o cualquier otra entrada para negar")
+            verGrafica = readline(stdin)
+            if verGrafica == ""
+                # Con el paquete de PowerPlots.jl se representa el sistema
+                powerplot(caso)
+
+            else
+                println("\nNo se mostrará gráficamente")
+            end
+
             solucion = 0
             # En caso de querer resolver un LP_OPF
             if opfTipo == "LP-OPF"
-                # En caso de usar Gurobi
+                # Usando Gurobi
                 if solver == "Gurobi"
-                    solucion = solve_dc_opf(rutaM, Gurobi.Optimizer)
-                # En caso de usar HiGHS
+                    pm = instantiate_model(rutaM, DCPPowerModel, PowerModels.build_opf)
+                    solucion = optimize_model!(pm, optimizer=Gurobi.Optimizer)
+                # Usando HiGHS
                 elseif solver == "HiGHS"
                     solucion = solve_dc_opf(rutaM, HiGHS.Optimizer)
-                # En caso de usar Ipopt
+                # Usando Ipopt
                 elseif solver == "Ipopt"
                     solucion = solve_dc_opf(rutaM, Ipopt.Optimizer)
-                # En caso de error
+                # Error
                 else
                     print("Error al cargar la resolución DC por PowerModels")
                 end
 
             # En caso de querer resolver un AC_OPF
             elseif opfTipo == "AC-OPF"
-                # En caso de usar Ipopt
+                # Usando Ipopt
                 if solver == "Ipopt"
                     solucion = solve_ac_opf(rutaM, Ipopt.Optimizer)
-                # En caso de error
+                # Error
                 else
                     print("Error al cargar la resolución AC por PowerModels")
                 end
@@ -64,21 +78,9 @@ function gestorResultados(modelo, solGeneradores, solFlujos, solAngulos, rutaM, 
 
             limpiarTerminal()
 
-            println("\n¿Quiere ver gráficamente la red eléctrica seleccionada?")
-            println("Pulsa la tecla ENTER para confirmar o cualquier otra entrada para negar")
-            verGrafica = readline(stdin)
-            if verGrafica == ""
-                # Con el paquete de PowerPlots.jl se representa el sistema
-                powerplot(parse_file(rutaM))
-
-            else
-                println("\nNo se mostrará gráficamente")
-            end
-
         # En caso de que la ruta no exista
         else
             println("Archivo del caso .m no encontrado\n")
-
         end
         
         # Comprueba el número de files de los DataFrames de la solución

@@ -90,7 +90,7 @@ function LP_OPF(dLinea::DataFrame, dGen::DataFrame, dNodo::DataFrame, nN::Int, n
 
     # Se selecciona el nodo 1 como nodo de refenrecia
     # Necesario en caso de HiGHS para evitar un bucle infinito al resolver la optimización
-    @constraint(m, θ[1] == 0)
+    # @constraint(m, θ[1] == 0)
 
     ########## RESOLUCIÓN ##########
     optimize!(m) # Optimización
