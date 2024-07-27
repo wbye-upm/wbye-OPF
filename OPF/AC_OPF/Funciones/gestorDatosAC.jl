@@ -1,5 +1,10 @@
 function gestorDatosAC(Generador::DataFrame, Nodo::DataFrame, nn::Int, bMVA::Int)
 
+    # Generador:    DataFrame de los generadores
+    # Nodo:         DataFrame de los nodos
+    # nn:           Número de nodos
+    # bMVA          Potencia base
+
     # El Dataframe introducido como argumento "dGen" en "Generador" contiene los datos de los generadores sacado de su correspondiente archivo "datosGeneradores.csv"
     # r = sparsevec(I, V, n) se crea la lista "r" cuyos índices es el vector "I" y los valores es el vector "V", 
     # cuyo tamaño total es de "n" elementos. Es decir, r[I[k]] = V[k] para k <= n
@@ -27,11 +32,11 @@ function gestorDatosAC(Generador::DataFrame, Nodo::DataFrame, nn::Int, bMVA::Int
     # P_Demand es un sparsevec de "nn" elementos donde se recoge como 
         # Índices: nodos donde se localiza la demanda "Nodo.bus_i"
         # Valores: demanda de potencia activa en los respectivos nodos "Nodo.P_DEMANDA"
-    P_Demand = SparseArrays.sparsevec(Nodo.bus_i, Nodo.Pd / bMVA, nn)
+    P_Demand = SparseArrays.sparsevec(Nodo.bus_i, Nodo.Pd, nn)
     # Q_Demand es un sparsevec de "nn" elementos donde se recoge como 
         # Índices: nodos donde está la demanda "Nodo.bus_i"
         # Valores: demanda de potencia reactiva en los respectivos nodos "Nodo.Q_DEMANDA"
-    Q_Demand = SparseArrays.sparsevec(Nodo.bus_i, Nodo.Qd / bMVA, nn)
+    Q_Demand = SparseArrays.sparsevec(Nodo.bus_i, Nodo.Qd, nn)
     # Sumando ambos sparsevec se optiene la potencia aparente S = P + jQ
     S_Demand = P_Demand + im * Q_Demand
 
@@ -40,15 +45,17 @@ function gestorDatosAC(Generador::DataFrame, Nodo::DataFrame, nn::Int, bMVA::Int
         # Valores: límite inferior "Nodo.Vmin" o superior "Nodo.Vmax" del generador
     V_Nodo_lb = SparseArrays.sparsevec(Nodo.bus_i, Nodo.Vmin, nn)
     V_Nodo_ub = SparseArrays.sparsevec(Nodo.bus_i, Nodo.Vmax, nn)
+    V_baseNodo = SparseArrays.sparsevec(Nodo.bus_i, Nodo.baseKV, nn)
 
-    Conduc_Sh = SparseArrays.sparsevec(Nodo.bus_i, Nodo.Gs / bMVA, nn)
-    Suscep_Sh = SparseArrays.sparsevec(Nodo.bus_i, Nodo.Bs / bMVA, nn)
+    # Conductancia y susceptancia shunt en los nodos
+    Conduc_Sh = SparseArrays.sparsevec(Nodo.bus_i, Nodo.Gs, nn)
+    Suscep_Sh = SparseArrays.sparsevec(Nodo.bus_i, Nodo.Bs, nn)
 
     # En los datos de los generadores se tiene en cuenta generadores que no están activos con status = 0
     # Por lo que se crea un sparsevec que contenga estos valores para considerar generadores apagados
     Gen_Status = SparseArrays.sparsevec(Generador.bus, Generador.status, nn)
 
     # Se devuelve como resultado de la función todos los SparseArrays generados
-    return P_Cost0, P_Cost1, P_Cost2, P_Gen_lb, P_Gen_ub, Q_Gen_lb, Q_Gen_ub, S_Demand, V_Nodo_lb, V_Nodo_ub, Conduc_Sh, Suscep_Sh, Gen_Status
+    return P_Cost0, P_Cost1, P_Cost2, P_Gen_lb, P_Gen_ub, Q_Gen_lb, Q_Gen_ub, S_Demand, V_Nodo_lb, V_Nodo_ub, V_baseNodo, Conduc_Sh, Suscep_Sh, Gen_Status
 
 end

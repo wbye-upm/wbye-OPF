@@ -32,18 +32,19 @@ function gestorResultados(modelo, solGeneradores, solFlujos, solAngulos, rutaM, 
         # # En caso de que la ruta exista
         solucion = 0
         if rutaM != "None"
-        #     caso = parse_file(rutaM)
+            # Mostrar gráficamente la red
+            # caso = parse_file(rutaM)
 
-        #     println("\n¿Quiere ver gráficamente la red eléctrica seleccionada?")
-        #     println("Pulsa la tecla ENTER para confirmar o cualquier otra entrada para negar")
-        #     verGrafica = readline(stdin)
-        #     if verGrafica == ""
-        #         # Con el paquete de PowerPlots.jl se representa el sistema
-        #         powerplot(caso)
+            # println("\n¿Quiere ver gráficamente la red eléctrica seleccionada?")
+            # println("Pulsa la tecla ENTER para confirmar o cualquier otra entrada para negar")
+            # verGrafica = readline(stdin)
+            # if verGrafica == ""
+            #     # Con el paquete de PowerPlots.jl se representa el sistema
+            #     powerplot(caso)
 
-        #     else
-        #         println("\nNo se mostrará gráficamente")
-        #     end
+            # else
+            #     println("\nNo se mostrará gráficamente")
+            # end
 
             # En caso de querer resolver un LP_OPF
             if opfTipo == "LP-OPF"
@@ -83,7 +84,7 @@ function gestorResultados(modelo, solGeneradores, solFlujos, solAngulos, rutaM, 
             println("Archivo del caso .m no encontrado\n")
         end
         
-        # Comprueba el número de files de los DataFrames de la solución
+        # Comprueba el número de filas de los DataFrames de la solución
         genFilas = DataFrames.nrow(solGeneradores);
         flFilas = DataFrames.nrow(solFlujos);
         angFilas = DataFrames.nrow(solAngulos);

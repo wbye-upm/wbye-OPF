@@ -14,10 +14,10 @@ function AC_OPF(dLinea::DataFrame, dGen::DataFrame, dNodos::DataFrame, nN::Int, 
 
     ########## GESTIÓN DE DATOS ##########
     # Asignación de los datos con la función "gestorDatosAC"
-    P_Cost0, P_Cost1, P_Cost2, P_Gen_lb, P_Gen_ub, Q_Gen_lb, Q_Gen_ub, S_Demand, V_Nodo_lb, V_Nodo_ub, Conduc_Sh, Suscep_Sh, Gen_Status = gestorDatosAC(dGen, dNodos, nN, bMVA)
+    P_Cost0, P_Cost1, P_Cost2, P_Gen_lb, P_Gen_ub, Q_Gen_lb, Q_Gen_ub, S_Demand, V_Nodo_lb, V_Nodo_ub, V_baseNodo, Conduc_Sh, Suscep_Sh, Gen_Status = gestorDatosAC(dGen, dNodos, nN, bMVA)
 
     # Matrices de admitancias
-    Y_0, Y_Sh = matrizAdmitancia(dLinea, nN, nL)
+    Y_0, Y_Sh = matrizAdmitancia(dLinea, nN, nL, bMVA)
 
 
     ########## INICIALIZAR MODELO ##########
@@ -26,7 +26,8 @@ function AC_OPF(dLinea::DataFrame, dGen::DataFrame, dNodos::DataFrame, nN::Int, 
     if solver == "Ipopt"
         m = Model(Ipopt.Optimizer)
         # Asignación del máximo de iteraciones
-        set_optimizer_attribute(m, "max_iter", 3000)
+        set_optimizer_attribute(m, "max_iter", 8000)
+        set_optimizer_attribute(m, "tol", 1e-8)
         # set_optimizer_attribute(IpoptSolver, "print_level", 0)
         # Se deshabilita las salidas por defecto que tiene el optimizador
         set_silent(m)
@@ -59,7 +60,7 @@ function AC_OPF(dLinea::DataFrame, dGen::DataFrame, dNodos::DataFrame, nN::Int, 
     # Siendo:
     #   cᵢ    Coste del Generador en el nodo i
     #   Pᵢ    Potencia generada del Generador en el nodo i
-    @objective(m, Min, sum(P_Cost0[i] + P_Cost1[i] * P_Gen[i] * bMVA + P_Cost2[i] * (P_Gen[i] * bMVA)^2 for i in 1:nN))
+    @objective(m, Min, sum(P_Cost0[i] + P_Cost1[i] * P_Gen[i] + P_Cost2[i] * (P_Gen[i])^2 for i in 1:nN))
 
 
     ########## RESTRICCIONES ##########
@@ -76,14 +77,16 @@ function AC_OPF(dLinea::DataFrame, dGen::DataFrame, dNodos::DataFrame, nN::Int, 
     # en caso de ser positivo significa que es un nodo que suministra potencia a la red 
     # y en caso negativo, consume potencia de la red
     # Y en la parte derecha es la función del flujo de potencia en la red
-    @constraint(m, S_Gen - S_Demand .== V .* conj(Y_0 * V))
+    @constraint(m, [i in 1:nN], S_Gen[i]*10^6 - S_Demand[i]*10^6 == V[i] * V_baseNodo[i]*10^3 * sum(conj(Y_0[i, j] * V[j] * V_baseNodo[j]*10^3) for j in 1:nN))
 
     # Asignamos el nodo 1 como referencia
     for i in 1:nrow(dNodos)
         if dNodos.type[i] == 3
-            @constraint(m, V[dNodos.bus_i[i]] == 1);
+            @constraint(m, real(V[dNodos.bus_i[i]]) >= 0)
+            @constraint(m, imag(V[dNodos.bus_i[i]]) == 0)
         end
     end
+
 
     # Restricción de potencia máxima por línea
     # El módulo de la potencia aparente de la línea debe ser inferior a la potencia aparente máxima que puede circular por dicha línea
@@ -92,12 +95,25 @@ function AC_OPF(dLinea::DataFrame, dGen::DataFrame, dNodos::DataFrame, nN::Int, 
         i = dLinea.fbus[k]
         j = dLinea.tbus[k]
         ####### Diferencias con Spiros...........
-        # S_ij = V[i] * conj(V[i] * Y_Sh[k] + (V[i] - V[j]) * Y_0[i, j])
-        # S_ji = V[j] * conj(V[j] * Y_Sh[k] + (V[j] - V[i]) * Y_0[j, i])
+        # Vi = sqrt(real(V[i])^2 + imag(V[i])^2) * V_baseNodo[i] * 10^3
+        # Vj = sqrt(real(V[j])^2 + imag(V[j])^2) * V_baseNodo[j] * 10^3
+        # Pij = Vi * Vj * real(Y_0[i, j]) * sin(atan(imag(V[i])/real(V[i])) - atan(imag(V[j])/real(V[j])))
+        # Qij = Vi * (Vi - Vj) * imag(Y_0[i, j]) * cos(atan(imag(V[i])/real(V[i])) - atan(imag(V[j])/real(V[j])))
 
-        @constraint(m, -(dLinea.rateA[k] * dLinea.status[k] / bMVA)^2 <= real(V[i] * conj((V[i] - V[j]) * Y_0[i, j]))^2 + imag(V[i] * conj((V[i] - V[j]) * Y_0[i, j]))^2 <= (dLinea.rateA[k] * dLinea.status[k] / bMVA)^2)
-        @constraint(m, -(dLinea.rateA[k] * dLinea.status[k] / bMVA)^2 <= real(V[j] * conj((V[j] - V[i]) * Y_0[j, i]))^2 + imag(V[j] * conj((V[j] - V[i]) * Y_0[j, i]))^2 <= (dLinea.rateA[k] * dLinea.status[k] / bMVA)^2)
+        # Pji = Vj * Vi * real(Y_0[i, j]) * sin(atan(imag(V[j])/real(V[j])) - atan(imag(V[i])/real(V[i])))
+        # Qji = Vj * (Vj - Vi) * imag(Y_0[i, j]) * cos(atan(imag(V[j])/real(V[j])) - atan(imag(V[i])/real(V[i])))
 
+        # @constraint(m, -(dLinea.rateA[k]*10^6)^2 * dLinea.status[k] <= Pij^2 + Qij^2 <= (dLinea.rateA[k]*10^6)^2 * dLinea.status[k])
+        # @constraint(m, -(dLinea.rateA[k]*10^6)^2 * dLinea.status[k] <= Pji^2 + Qji^2 <= (dLinea.rateA[k]*10^6)^2 * dLinea.status[k])
+
+        Sij = V[i] * V_baseNodo[i]*10^3 * conj(Y_0[i, j] * (V[i] * V_baseNodo[i]*10^3 - V[j] * V_baseNodo[j]*10^3))
+        @constraint(m, -(dLinea.rateA[k]*10^6)^2 * dLinea.status[k] <= (real(Sij)^2 + imag(Sij)^2) <= (dLinea.rateA[k]*10^6)^2 * dLinea.status[k])
+        Sji = V[j] * V_baseNodo[j]*10^3 * conj(Y_0[j, i] * (V[j] * V_baseNodo[j]*10^3 - V[i] * V_baseNodo[i]*10^3)) 
+        @constraint(m, -(dLinea.rateA[k]*10^6)^2 * dLinea.status[k] <= (real(Sji)^2 + imag(Sji)^2) <= (dLinea.rateA[k]*10^6)^2 * dLinea.status[k])
+    
+        # Iij = (V[i] - V[j]) * Y_0[i,j]
+        
+        # @constraint(m, -(dLinea.rateA[k] / bMVA)^2 * dLinea.status[k] <= real(Iij)^2 + imag(Iij)^2 <= (dLinea.rateA[k] / bMVA)^2 * dLinea.status[k])
     end
 
     ########## RESOLUCIÓN ##########

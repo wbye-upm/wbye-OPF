@@ -3,11 +3,10 @@
 function boot()
 
     println("Iniciando tests...")
-    # Se crea unos DataFrames de una red de 2 buses y una línea que los une
-    # La generación se sitúa en el bus 1 y la demanda en el bus 2
-    test_linea = DataFrame(fbus = [1], tbus = [2], r = [0], x = [0.1], b = [0], rateA = [10], status = [1])
-    test_generador = DataFrame(bus = [1], Pmin = [0], Pmax = [2], Qmin = [0], Qmax = [1], status = [1], c2 = [1], c1 = [1], c0 = [1])
-    test_nodos = DataFrame(bus_i = [1, 2], Pd = [0, 1], Qd = [0, 0], Vmax = [1.1, 1.1], Vmin = [0.9, 0.9])
+    # Se extrae los datos del sistema_test
+    test_linea = CSV.read("Funciones/sistema_test/datosLineas.csv", DataFrame)
+    test_generador = CSV.read("Funciones/sistema_test/datosGeneradores.csv", DataFrame)
+    test_nodos = CSV.read("Funciones/sistema_test/datosNodos.csv", DataFrame)
 
     # Con esta red simple se genera una los diferentes OPF para que ya estén cargados cuando el usuario los utilice
     println("Test 1...")
