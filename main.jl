@@ -11,7 +11,7 @@ Logging.disable_logging(Logging.Error)
 
 # Se inicializa el programa con diferentes test
 # principalmente para cargar los solvers y resolver con mayor rapidez el caso pedido por el usuario
-boot()
+# boot()
 
 # Cariable para salir del bucle
 finPrograma = false

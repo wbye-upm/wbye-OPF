@@ -9,7 +9,7 @@ function extraerDatos(c::String)
     datosNodo = CSV.read("Casos/$c/datosNodos.csv", DataFrame)
 
     # Número de nodos
-    nNodos = maximum([datosLinea.F_BUS; datosLinea.T_BUS])
+    nNodos = maximum([datosLinea.fbus; datosLinea.tbus])
 
     # Número de líneas
     nLineas = size(datosLinea, 1)

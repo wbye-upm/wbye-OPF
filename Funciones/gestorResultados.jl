@@ -27,35 +27,35 @@ function gestorResultados(modelo, solGeneradores, solFlujos, solAngulos, rutaM, 
 
         end
 
-        # Preguntar al usuario si quiere ver el sistema eléctrico
-        # En caso de que la ruta exista
+        ##### Con el terminal de VS Code no hace display del plot pero con el terminal de Julia sí
+        # # Preguntar al usuario si quiere ver el sistema eléctrico
+        # # En caso de que la ruta exista
         solucion = 0
         if rutaM != "None"
-            caso = parse_file(rutaM)
+        #     caso = parse_file(rutaM)
 
-            println("\n¿Quiere ver gráficamente la red eléctrica seleccionada?")
-            println("Pulsa la tecla ENTER para confirmar o cualquier otra entrada para negar")
-            verGrafica = readline(stdin)
-            if verGrafica == ""
-                # Con el paquete de PowerPlots.jl se representa el sistema
-                powerplot(caso)
+        #     println("\n¿Quiere ver gráficamente la red eléctrica seleccionada?")
+        #     println("Pulsa la tecla ENTER para confirmar o cualquier otra entrada para negar")
+        #     verGrafica = readline(stdin)
+        #     if verGrafica == ""
+        #         # Con el paquete de PowerPlots.jl se representa el sistema
+        #         powerplot(caso)
 
-            else
-                println("\nNo se mostrará gráficamente")
-            end
+        #     else
+        #         println("\nNo se mostrará gráficamente")
+        #     end
 
             # En caso de querer resolver un LP_OPF
             if opfTipo == "LP-OPF"
                 # Usando Gurobi
                 if solver == "Gurobi"
-                    pm = instantiate_model(rutaM, DCMPPowerModel, PowerModels.build_opf)
-                    solucion = optimize_model!(pm, optimizer=Gurobi.Optimizer)
+                    solucion = solve_opf(rutaM, DCMPPowerModel, Gurobi.Optimizer)
                 # Usando HiGHS
                 elseif solver == "HiGHS"
-                    solucion = solve_dc_opf(rutaM, HiGHS.Optimizer)
+                    solucion = solve_opf(rutaM, DCMPPowerModel, HiGHS.Optimizer)
                 # Usando Ipopt
                 elseif solver == "Ipopt"
-                    solucion = solve_ac_opf(rutaM, Ipopt.Optimizer)
+                    solucion = solve_opf(rutaM, DCMPPowerModel, Ipopt.Optimizer)
                 # Error
                 else
                     print("Error al cargar la resolución DC por PowerModels")
@@ -65,7 +65,7 @@ function gestorResultados(modelo, solGeneradores, solFlujos, solAngulos, rutaM, 
             elseif opfTipo == "AC-OPF"
                 # Usando Ipopt
                 if solver == "Ipopt"
-                    solucion = solve_ac_opf(rutaM, Ipopt.Optimizer)
+                    solucion = solve_opf(rutaM, ACRPowerModel, Ipopt.Optimizer)
                 # Error
                 else
                     print("Error al cargar la resolución AC por PowerModels")
