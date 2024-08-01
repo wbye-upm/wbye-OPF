@@ -85,6 +85,7 @@ function gestorResultados(modelo, solGeneradores, solFlujos, solAngulos, rutaM, 
         end
         
         # Comprueba el número de filas de los DataFrames de la solución
+
         genFilas = DataFrames.nrow(solGeneradores);
         flFilas = DataFrames.nrow(solFlujos);
         angFilas = DataFrames.nrow(solAngulos);

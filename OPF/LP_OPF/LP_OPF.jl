@@ -64,7 +64,7 @@ function LP_OPF(dLinea::DataFrame, dGen::DataFrame, dNodos::DataFrame, nN::Int, 
     # Siendo:
     #   cᵢ el coste del Generador en el nodo i
     #   Pᵢ la potencia generada del Generador en el nodo i
-    @objective(m, Min, sum(P_Cost1[i] * P_G[i] * bMVA for i in 1:nN))
+    @objective(m, Min, sum(P_Cost0[i] + P_Cost1[i] * P_G[i]*bMVA + P_Cost2[i] * (P_G[i]*bMVA)^2 for i in 1:nN))
 
 
     ########## RESTRICCIONES ##########
@@ -78,7 +78,7 @@ function LP_OPF(dLinea::DataFrame, dGen::DataFrame, dNodos::DataFrame, nN::Int, 
     # en caso de ser positivo significa que es un nodo que suministra potencia a la red 
     # y en caso negativo, consume potencia de la red
     # Y en la parte derecha es la función del flujo de potencia en la red
-    @constraint(m, [i in 1:nN], P_G[i] - P_Demand[i] == sum(B[i, j] * θ[j] for j in 1:nN))
+    @constraint(m, [i in 1:nN], P_G[i] - P_Demand[i] == sum(B[i, j] * (θ[i] - θ[j]) for j in 1:nN))
 
     # Restricción de potencia máxima por la línea
     # Siendo la potencia que circula en la linea que conecta los nodos i-j: Pᵢⱼ = Bᵢⱼ·(θᵢ-θⱼ) 

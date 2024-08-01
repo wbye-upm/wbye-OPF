@@ -14,10 +14,10 @@ function AC_OPF(dLinea::DataFrame, dGen::DataFrame, dNodos::DataFrame, nN::Int, 
 
     ########## GESTIÓN DE DATOS ##########
     # Asignación de los datos con la función "gestorDatosAC"
-    P_Cost0, P_Cost1, P_Cost2, P_Gen_lb, P_Gen_ub, Q_Gen_lb, Q_Gen_ub, S_Demand, V_Nodo_lb, V_Nodo_ub, V_baseNodo, Conduc_Sh, Suscep_Sh, Gen_Status = gestorDatosAC(dGen, dNodos, nN, bMVA)
+    P_Cost0, P_Cost1, P_Cost2, P_Gen_lb, P_Gen_ub, Q_Gen_lb, Q_Gen_ub, P_Demand, Q_Demand, V_Nodo_lb, V_Nodo_ub, Gen_Status = gestorDatosAC(dGen, dNodos, nN, bMVA)
 
     # Matrices de admitancias
-    Y_0, Y_Sh = matrizAdmitancia(dLinea, nN, nL, bMVA)
+    Y, Y_Sh = matrizAdmitancia(dLinea, nN, nL)
 
 
     ########## INICIALIZAR MODELO ##########
@@ -26,8 +26,8 @@ function AC_OPF(dLinea::DataFrame, dGen::DataFrame, dNodos::DataFrame, nN::Int, 
     if solver == "Ipopt"
         m = Model(Ipopt.Optimizer)
         # Asignación del máximo de iteraciones
-        set_optimizer_attribute(m, "max_iter", 8000)
-        set_optimizer_attribute(m, "tol", 1e-8)
+        # set_optimizer_attribute(m, "max_iter", 8000)
+        # set_optimizer_attribute(m, "tol", 1e-8)
         # set_optimizer_attribute(IpoptSolver, "print_level", 0)
         # Se deshabilita las salidas por defecto que tiene el optimizador
         set_silent(m)
@@ -46,26 +46,27 @@ function AC_OPF(dLinea::DataFrame, dGen::DataFrame, dNodos::DataFrame, nN::Int, 
     ########## VARIABLES ##########
     # Asignación de "S_Gen" como variable compleja de la potencia aparente de los generadores de cada nodo
     # Aplicando a la vez las restricciones de mínimo "lower_bound" y máximo "upper_bound" de cada generador
-    @variable(m, S_Gen[i in 1:nN] in ComplexPlane(), lower_bound = (P_Gen_lb[i] + Q_Gen_lb[i] * im) * Gen_Status[i], upper_bound = (P_Gen_ub[i] + Q_Gen_ub[i] * im) * Gen_Status[i])
-    
+    @variable(m, P_G[1:nN], start = 0)
+    @variable(m, Q_G[1:nN], start = 0)
+
     # Asignación de "V" como variable compleja de las tensiones en cada nodo inicializando todos a (1 + j0)V
-    @variable(m, V[1:nN] in ComplexPlane(), start = 1.0 + 0.0im)
+    @variable(m, V[1:nN], start = 1)
+    @variable(m, θ[1:nN], start = 0)
 
 
     ########## FUNCIÓN OBJETIVO ##########
-    # Como el coste de los generadores va en función de la potencia activa generada
-    # separamos de la variable S_Gen la parte activa
-    P_Gen = real(S_Gen)
     # El objetivo del problema es reducir el coste total que se calcula como ∑cᵢ·Pᵢ
     # Siendo:
     #   cᵢ    Coste del Generador en el nodo i
     #   Pᵢ    Potencia generada del Generador en el nodo i
-    @objective(m, Min, sum(P_Cost0[i] + P_Cost1[i] * P_Gen[i] + P_Cost2[i] * (P_Gen[i])^2 for i in 1:nN))
+    @objective(m, Min, sum(P_Cost0[i] + P_Cost1[i] * P_G[i]*bMVA + P_Cost2[i] * (P_G[i]*bMVA)^2 for i in 1:nN))
 
 
     ########## RESTRICCIONES ##########
-    # El módulo de la tensión debe estar comprendido entre 0.9 y 1.1
-    @constraint(m, [i in 1:nN], V_Nodo_lb[i]^2 <= real(V[i])^2 + imag(V[i])^2 <= V_Nodo_ub[i]^2)
+    @constraint(m, [i in 1:nN], P_Gen_lb[i] * Gen_Status[i] <= P_G[i] <= P_Gen_ub[i] * Gen_Status[i])
+    @constraint(m, [i in 1:nN], Q_Gen_lb[i] * Gen_Status[i] <= Q_G[i] <= Q_Gen_ub[i] * Gen_Status[i])
+
+    @constraint(m, [i in 1:nN], V_Nodo_lb[i] <= V[i] <= V_Nodo_ub[i])
 
     # Restricción de la relación entre los nodos: S_Gen - S_Demand = V * conj(Y * V)
     # Siendo 
@@ -77,44 +78,42 @@ function AC_OPF(dLinea::DataFrame, dGen::DataFrame, dNodos::DataFrame, nN::Int, 
     # en caso de ser positivo significa que es un nodo que suministra potencia a la red 
     # y en caso negativo, consume potencia de la red
     # Y en la parte derecha es la función del flujo de potencia en la red
-    @constraint(m, [i in 1:nN], S_Gen[i]*10^6 - S_Demand[i]*10^6 == V[i] * V_baseNodo[i]*10^3 * sum(conj(Y_0[i, j] * V[j] * V_baseNodo[j]*10^3) for j in 1:nN))
+    @constraint(m, [i in 1:nN], P_G[i] - P_Demand[i] == V[i] * sum(V[j] * (real(Y[i, j]) * cos(θ[i] - θ[j]) + imag(Y[i, j]) * sin(θ[i] - θ[j])) for j in 1:nN))
+    @constraint(m, [i in 1:nN], Q_G[i] - Q_Demand[i] == V[i] * sum(V[j] * (real(Y[i, j]) * sin(θ[i] - θ[j]) - imag(Y[i, j]) * cos(θ[i] - θ[j])) for j in 1:nN))
+
+
+    for k in 1:nL
+        @constraint(m, dLinea.angmin[k] <= θ[dLinea.fbus[k]] - θ[dLinea.tbus[k]] <= dLinea.angmax[k])
+    end
+
 
     # Asignamos el nodo 1 como referencia
     for i in 1:nrow(dNodos)
         if dNodos.type[i] == 3
-            @constraint(m, real(V[dNodos.bus_i[i]]) >= 0)
-            @constraint(m, imag(V[dNodos.bus_i[i]]) == 0)
+            @constraint(m, θ[dNodos.bus_i[i]] == 0)
+            @constraint(m, V[dNodos.bus_i[i]] == 1)
         end
+    end
+
+
+    for k in 1:nL
+        i = dLinea.fbus[k]
+        j = dLinea.tbus[k]
+
+        Pij = V[i] * V[j] * (real(Y[i, j]) * cos(θ[i] - θ[j]) + imag(Y[i, j]) * sin(θ[i] - θ[j])) - V[i]^2 * real(Y[i, j])
+        Qij = V[i] * V[j] * (real(Y[i, j]) * sin(θ[i] - θ[j]) - imag(Y[i, j]) * cos(θ[i] - θ[j])) + V[i]^2 * imag(Y[i, j])
+        @constraint(m, Pij^2 + Qij^2 <= (dLinea.rateA[k] / bMVA)^2)
+
+        # Pji = V[j] * V[i] * (real(Y[j, i]) * cos(θ[j] - θ[i]) + imag(Y[j, i]) * sin(θ[j] - θ[i])) - V[j]^2 * real(Y[j, i])
+        # Qji = V[j] * V[i] * (real(Y[j, i]) * sin(θ[j] - θ[i]) - imag(Y[j, i]) * cos(θ[j] - θ[i])) + V[j]^2 * imag(Y[j, i])
+        # @constraint(m, Pji^2 + Qji^2 <= (dLinea.rateA[k] / bMVA)^2)
     end
 
 
     # Restricción de potencia máxima por línea
     # El módulo de la potencia aparente de la línea debe ser inferior a la potencia aparente máxima que puede circular por dicha línea
-    for k in 1:nL
-
-        i = dLinea.fbus[k]
-        j = dLinea.tbus[k]
-        ####### Diferencias con Spiros...........
-        # Vi = sqrt(real(V[i])^2 + imag(V[i])^2) * V_baseNodo[i] * 10^3
-        # Vj = sqrt(real(V[j])^2 + imag(V[j])^2) * V_baseNodo[j] * 10^3
-        # Pij = Vi * Vj * real(Y_0[i, j]) * sin(atan(imag(V[i])/real(V[i])) - atan(imag(V[j])/real(V[j])))
-        # Qij = Vi * (Vi - Vj) * imag(Y_0[i, j]) * cos(atan(imag(V[i])/real(V[i])) - atan(imag(V[j])/real(V[j])))
-
-        # Pji = Vj * Vi * real(Y_0[i, j]) * sin(atan(imag(V[j])/real(V[j])) - atan(imag(V[i])/real(V[i])))
-        # Qji = Vj * (Vj - Vi) * imag(Y_0[i, j]) * cos(atan(imag(V[j])/real(V[j])) - atan(imag(V[i])/real(V[i])))
-
-        # @constraint(m, -(dLinea.rateA[k]*10^6)^2 * dLinea.status[k] <= Pij^2 + Qij^2 <= (dLinea.rateA[k]*10^6)^2 * dLinea.status[k])
-        # @constraint(m, -(dLinea.rateA[k]*10^6)^2 * dLinea.status[k] <= Pji^2 + Qji^2 <= (dLinea.rateA[k]*10^6)^2 * dLinea.status[k])
-
-        Sij = V[i] * V_baseNodo[i]*10^3 * conj(Y_0[i, j] * (V[i] * V_baseNodo[i]*10^3 - V[j] * V_baseNodo[j]*10^3))
-        @constraint(m, -(dLinea.rateA[k]*10^6)^2 * dLinea.status[k] <= (real(Sij)^2 + imag(Sij)^2) <= (dLinea.rateA[k]*10^6)^2 * dLinea.status[k])
-        Sji = V[j] * V_baseNodo[j]*10^3 * conj(Y_0[j, i] * (V[j] * V_baseNodo[j]*10^3 - V[i] * V_baseNodo[i]*10^3)) 
-        @constraint(m, -(dLinea.rateA[k]*10^6)^2 * dLinea.status[k] <= (real(Sji)^2 + imag(Sji)^2) <= (dLinea.rateA[k]*10^6)^2 * dLinea.status[k])
+   
     
-        # Iij = (V[i] - V[j]) * Y_0[i,j]
-        
-        # @constraint(m, -(dLinea.rateA[k] / bMVA)^2 * dLinea.status[k] <= real(Iij)^2 + imag(Iij)^2 <= (dLinea.rateA[k] / bMVA)^2 * dLinea.status[k])
-    end
 
     ########## RESOLUCIÓN ##########
     optimize!(m)    # Optimización
@@ -126,8 +125,8 @@ function AC_OPF(dLinea::DataFrame, dGen::DataFrame, dNodos::DataFrame, nN::Int, 
         # Primera columna: nodo
         # Segunda columna: valor real que toma de la variable "S_Gen" (está en pu y se pasa a MVA) del generador de dicho nodo
         # Tercera columna: valor imaginario que toma de la variable "S_Gen" (está en pu y se pasa a MVA) del generador de dicho nodo
-        solGen = DataFrames.DataFrame(bus = (dGen.bus), potPGen = (value.(real(S_Gen[dGen.bus])) * bMVA), potQGen = (value.(imag(S_Gen[dGen.bus])) * bMVA))
-        
+        solGen = DataFrames.DataFrame(bus = (dGen.bus), potPGen = (value.(P_G[dGen.bus]) * bMVA), potQGen = (value.(Q_G[dGen.bus]) * bMVA))
+
         # solFlujos recoge el flujo de potencia que pasa por todas las líneas
         # Primera columna: nodo del que sale
         # Segunda columna: nodo al que llega
@@ -136,9 +135,9 @@ function AC_OPF(dLinea::DataFrame, dGen::DataFrame, dNodos::DataFrame, nN::Int, 
         for k in 1:nL
             i = dLinea.fbus[k]
             j = dLinea.tbus[k]
-            I_ij = value(V[i]) * Y_Sh[k] + (value(V[i]) - value(V[j])) * Y_0[i, j]
-            S_ij = value(V[i]) * conj(I_ij)
-            push!(solFlujos, [i, j, sqrt(real(S_ij)^2 + imag(S_ij)^2) * bMVA])
+            Pij = V[i] * V[j] * (real(Y[i, j]) * cos(θ[i] - θ[j]) + imag(Y[i, j]) * sin(θ[i] - θ[j])) - V[i]^2 * real(Y[i, j])
+            Qij = V[i] * V[j] * (real(Y[i, j]) * sin(θ[i] - θ[j]) - imag(Y[i, j]) * cos(θ[i] - θ[j])) + V[i]^2 * imag(Y[i, j])
+            push!(solFlujos, [i, j, sqrt(value(Pij^2 + Qij^2)) * bMVA])
         end
 
         # solAngulos recoge el desfase de la tensión en los nodos
@@ -146,7 +145,7 @@ function AC_OPF(dLinea::DataFrame, dGen::DataFrame, dNodos::DataFrame, nN::Int, 
         # Segunda columna: valor del desfase en grados
         solAngulos = DataFrames.DataFrame(bus = Int[], anguloGrados = Float64[])
         for i in 1:nN
-            push!(solAngulos, Dict(:bus => i, :anguloGrados => round(rad2deg(angle(value(V[i]))), digits = 2)))
+            push!(solAngulos, Dict(:bus => i, :anguloGrados => round(rad2deg(value(θ[i])), digits = 2)))
         end
         # Devuelve como solución el modelo "m" y los DataFrames generados de generación, flujos y ángulos
         return m, solGen, solFlujos, solAngulos
