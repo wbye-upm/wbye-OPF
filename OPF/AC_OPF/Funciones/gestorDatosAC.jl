@@ -40,6 +40,10 @@ function gestorDatosAC(Generador::DataFrame, Nodo::DataFrame, nn::Int, bMVA::Int
     # Sumando ambos sparsevec se optiene la potencia aparente S = P + jQ
     # S_Demand = P_Demand + im * Q_Demand
 
+    
+    Gs = SparseArrays.sparsevec(Nodo.bus_i, Nodo.Gs / bMVA, nn)
+    Bs = SparseArrays.sparsevec(Nodo.bus_i, Nodo.Bs / bMVA, nn)
+
     # V_Nodo_lb y V_Nodo_ub son sparsevec de "nn" elementos de los limites inferior y superior, respectivamente, del voltaje en los nodos en valores pu
         # Índices: nodo
         # Valores: límite inferior "Nodo.Vmin" o superior "Nodo.Vmax" del generador
@@ -56,6 +60,6 @@ function gestorDatosAC(Generador::DataFrame, Nodo::DataFrame, nn::Int, bMVA::Int
     Gen_Status = SparseArrays.sparsevec(Generador.bus, Generador.status, nn)
 
     # Se devuelve como resultado de la función todos los SparseArrays generados
-    return P_Cost0, P_Cost1, P_Cost2, P_Gen_lb, P_Gen_ub, Q_Gen_lb, Q_Gen_ub, P_Demand, Q_Demand, V_Nodo_lb, V_Nodo_ub, Gen_Status
+    return P_Cost0, P_Cost1, P_Cost2, P_Gen_lb, P_Gen_ub, Q_Gen_lb, Q_Gen_ub, P_Demand, Q_Demand, Gs, Bs, V_Nodo_lb, V_Nodo_ub, Gen_Status
 
 end

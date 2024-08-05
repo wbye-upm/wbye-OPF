@@ -80,6 +80,10 @@ function LP_OPF(dLinea::DataFrame, dGen::DataFrame, dNodos::DataFrame, nN::Int, 
     # Y en la parte derecha es la función del flujo de potencia en la red
     @constraint(m, [i in 1:nN], P_G[i] - P_Demand[i] == sum(B[i, j] * (θ[i] - θ[j]) for j in 1:nN))
 
+    for k in 1:nL
+        @constraint(m, deg2rad(dLinea.angmin[k]) <= θ[dLinea.fbus[k]] - θ[dLinea.tbus[k]] <= deg2rad(dLinea.angmax[k]))
+    end
+
     # Restricción de potencia máxima por la línea
     # Siendo la potencia que circula en la linea que conecta los nodos i-j: Pᵢⱼ = Bᵢⱼ·(θᵢ-θⱼ) 
     # Su valor abosoluto debe ser menor que el dato de potencia max en dicha línea "dLinea.rateA"

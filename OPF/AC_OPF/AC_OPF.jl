@@ -14,10 +14,10 @@ function AC_OPF(dLinea::DataFrame, dGen::DataFrame, dNodos::DataFrame, nN::Int, 
 
     ########## GESTIÓN DE DATOS ##########
     # Asignación de los datos con la función "gestorDatosAC"
-    P_Cost0, P_Cost1, P_Cost2, P_Gen_lb, P_Gen_ub, Q_Gen_lb, Q_Gen_ub, P_Demand, Q_Demand, V_Nodo_lb, V_Nodo_ub, Gen_Status = gestorDatosAC(dGen, dNodos, nN, bMVA)
+    P_Cost0, P_Cost1, P_Cost2, P_Gen_lb, P_Gen_ub, Q_Gen_lb, Q_Gen_ub, P_Demand, Q_Demand, Gs, Bs, V_Nodo_lb, V_Nodo_ub, Gen_Status = gestorDatosAC(dGen, dNodos, nN, bMVA)
 
     # Matrices de admitancias
-    Y, Y_Sh = matrizAdmitancia(dLinea, nN, nL)
+    Y = matrizAdmitancia(dLinea, nN, nL)
 
 
     ########## INICIALIZAR MODELO ##########
@@ -78,12 +78,12 @@ function AC_OPF(dLinea::DataFrame, dGen::DataFrame, dNodos::DataFrame, nN::Int, 
     # en caso de ser positivo significa que es un nodo que suministra potencia a la red 
     # y en caso negativo, consume potencia de la red
     # Y en la parte derecha es la función del flujo de potencia en la red
-    @constraint(m, [i in 1:nN], P_G[i] - P_Demand[i] == V[i] * sum(V[j] * (real(Y[i, j]) * cos(θ[i] - θ[j]) + imag(Y[i, j]) * sin(θ[i] - θ[j])) for j in 1:nN))
-    @constraint(m, [i in 1:nN], Q_G[i] - Q_Demand[i] == V[i] * sum(V[j] * (real(Y[i, j]) * sin(θ[i] - θ[j]) - imag(Y[i, j]) * cos(θ[i] - θ[j])) for j in 1:nN))
+    @constraint(m, [i in 1:nN], P_G[i] - P_Demand[i] == V[i] * sum(V[j] * (real(Y[i, j]) * cos(θ[i] - θ[j]) + imag(Y[i, j]) * sin(θ[i] - θ[j])) for j in 1:nN) + Gs[i])
+    @constraint(m, [i in 1:nN], Q_G[i] - Q_Demand[i] == V[i] * sum(V[j] * (real(Y[i, j]) * sin(θ[i] - θ[j]) - imag(Y[i, j]) * cos(θ[i] - θ[j])) for j in 1:nN) - Bs[i])
 
 
     for k in 1:nL
-        @constraint(m, dLinea.angmin[k] <= θ[dLinea.fbus[k]] - θ[dLinea.tbus[k]] <= dLinea.angmax[k])
+        @constraint(m, deg2rad(dLinea.angmin[k]) <= θ[dLinea.fbus[k]] - θ[dLinea.tbus[k]] <= deg2rad(dLinea.angmax[k]))
     end
 
 
@@ -91,11 +91,11 @@ function AC_OPF(dLinea::DataFrame, dGen::DataFrame, dNodos::DataFrame, nN::Int, 
     for i in 1:nrow(dNodos)
         if dNodos.type[i] == 3
             @constraint(m, θ[dNodos.bus_i[i]] == 0)
-            @constraint(m, V[dNodos.bus_i[i]] == 1)
         end
     end
 
 
+    # Restricción de potencia máxima por línea
     for k in 1:nL
         i = dLinea.fbus[k]
         j = dLinea.tbus[k]
@@ -104,16 +104,11 @@ function AC_OPF(dLinea::DataFrame, dGen::DataFrame, dNodos::DataFrame, nN::Int, 
         Qij = V[i] * V[j] * (real(Y[i, j]) * sin(θ[i] - θ[j]) - imag(Y[i, j]) * cos(θ[i] - θ[j])) + V[i]^2 * imag(Y[i, j])
         @constraint(m, Pij^2 + Qij^2 <= (dLinea.rateA[k] / bMVA)^2)
 
-        # Pji = V[j] * V[i] * (real(Y[j, i]) * cos(θ[j] - θ[i]) + imag(Y[j, i]) * sin(θ[j] - θ[i])) - V[j]^2 * real(Y[j, i])
-        # Qji = V[j] * V[i] * (real(Y[j, i]) * sin(θ[j] - θ[i]) - imag(Y[j, i]) * cos(θ[j] - θ[i])) + V[j]^2 * imag(Y[j, i])
-        # @constraint(m, Pji^2 + Qji^2 <= (dLinea.rateA[k] / bMVA)^2)
+        Pji = V[j] * V[i] * (real(Y[j, i]) * cos(θ[j] - θ[i]) + imag(Y[j, i]) * sin(θ[j] - θ[i])) - V[j]^2 * real(Y[j, i])
+        Qji = V[j] * V[i] * (real(Y[j, i]) * sin(θ[j] - θ[i]) - imag(Y[j, i]) * cos(θ[j] - θ[i])) + V[j]^2 * imag(Y[j, i])
+        @constraint(m, Pji^2 + Qji^2 <= (dLinea.rateA[k] / bMVA)^2)
     end
 
-
-    # Restricción de potencia máxima por línea
-    # El módulo de la potencia aparente de la línea debe ser inferior a la potencia aparente máxima que puede circular por dicha línea
-   
-    
 
     ########## RESOLUCIÓN ##########
     optimize!(m)    # Optimización

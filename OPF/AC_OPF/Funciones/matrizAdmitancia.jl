@@ -15,12 +15,7 @@ function matrizAdmitancia(datos::DataFrame, nn::Int, nl::Int)
     Y = A * SparseArrays.spdiagm(1 ./ Z) * A'
     # Donde spdiagm crea una matriz sin elementos (SparseArray) y asigna los valores de cada "1/Z" en la diagonal principal
 
-    # Se calcula la admitancia shunt como la mitad del valor de "datos.Sh"
-    y_Sh = 0.5 * (im * datos.b)
-    # Y_Sh = SparseArrays.spdiagm(LinearAlgebra.diag(A * SparseArrays.spdiagm(y_Sh) * A'))
-    Y_Sh = A * SparseArrays.spdiagm(y_Sh) * A'
-
     # Se devuelve la matriz de admitancia total, la de admitancias de línea y la de admitancias shunt
-    return Y, Y_Sh
+    return Y
 
 end
