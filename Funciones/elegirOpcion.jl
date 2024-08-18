@@ -59,7 +59,7 @@ function elegirOpcion(o::Vector{String}, tipo::String)
                 println("Por favor, introduzca un número entre 1 y $(length(o)).")
 
                 # El mensaje se muestra en pantalla por 2 segundos
-                sleep(2)
+                sleep(1)
                 continue
 
             end
@@ -73,7 +73,7 @@ function elegirOpcion(o::Vector{String}, tipo::String)
 
             # El mensaje se muestra en pantalla por 2 segundos
             println("Entrada no válida. Por favor, introduzca un número.")
-            sleep(2)
+            sleep(1)
             continue
 
         end

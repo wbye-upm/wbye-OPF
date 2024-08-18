@@ -25,12 +25,9 @@ function AC_OPF(dLinea::DataFrame, dGen::DataFrame, dNodos::DataFrame, nN::Int, 
     # En el caso de elegir Ipopt
     if solver == "Ipopt"
         m = Model(Ipopt.Optimizer)
-        # Asignación del máximo de iteraciones
-        # set_optimizer_attribute(m, "max_iter", 8000)
-        # set_optimizer_attribute(m, "tol", 1e-8)
-        # set_optimizer_attribute(IpoptSolver, "print_level", 0)
-        # Se deshabilita las salidas por defecto que tiene el optimizador
-        set_silent(m)
+        set_optimizer_attribute(m, "max_iter", 15000) # Asignación del máximo de iteraciones
+        set_optimizer_attribute(m, "tol", 1e-8) # Tolerancia
+        set_silent(m) # Se deshabilita las salidas por defecto que tiene el optimizador
 
     # En caso de elegir Couenne --- Se queda en bucle infinito para problemas medianos/grandes
     elseif solver == "Couenne"
@@ -82,11 +79,6 @@ function AC_OPF(dLinea::DataFrame, dGen::DataFrame, dNodos::DataFrame, nN::Int, 
     @constraint(m, [i in 1:nN], Q_G[i] - Q_Demand[i] == V[i] * sum(V[j] * (real(Y[i, j]) * sin(θ[i] - θ[j]) - imag(Y[i, j]) * cos(θ[i] - θ[j])) for j in 1:nN) - Bs[i])
 
 
-    for k in 1:nL
-        @constraint(m, deg2rad(dLinea.angmin[k]) <= θ[dLinea.fbus[k]] - θ[dLinea.tbus[k]] <= deg2rad(dLinea.angmax[k]))
-    end
-
-
     # Asignamos el nodo 1 como referencia
     for i in 1:nrow(dNodos)
         if dNodos.type[i] == 3
@@ -97,16 +89,20 @@ function AC_OPF(dLinea::DataFrame, dGen::DataFrame, dNodos::DataFrame, nN::Int, 
 
     # Restricción de potencia máxima por línea
     for k in 1:nL
-        i = dLinea.fbus[k]
-        j = dLinea.tbus[k]
+        if dLinea.status[k] != 0
+            i = dLinea.fbus[k]
+            j = dLinea.tbus[k]
 
-        Pij = V[i] * V[j] * (real(Y[i, j]) * cos(θ[i] - θ[j]) + imag(Y[i, j]) * sin(θ[i] - θ[j])) - V[i]^2 * real(Y[i, j])
-        Qij = V[i] * V[j] * (real(Y[i, j]) * sin(θ[i] - θ[j]) - imag(Y[i, j]) * cos(θ[i] - θ[j])) + V[i]^2 * imag(Y[i, j])
-        @constraint(m, Pij^2 + Qij^2 <= (dLinea.rateA[k] / bMVA)^2)
+            Pij = V[i] * V[j] * (real(Y[i, j]) * cos(θ[i] - θ[j]) - imag(Y[i, j]) * sin(θ[i] - θ[j])) - V[i]^2 * real(Y[i, j])
+            Qij = V[i] * V[j] * (real(Y[i, j]) * sin(θ[i] - θ[j]) + imag(Y[i, j]) * cos(θ[i] - θ[j])) - V[i]^2 * imag(Y[i, j])
+            @constraint(m, Pij^2 + Qij^2 <= (dLinea.rateA[k] / bMVA)^2)
 
-        Pji = V[j] * V[i] * (real(Y[j, i]) * cos(θ[j] - θ[i]) + imag(Y[j, i]) * sin(θ[j] - θ[i])) - V[j]^2 * real(Y[j, i])
-        Qji = V[j] * V[i] * (real(Y[j, i]) * sin(θ[j] - θ[i]) - imag(Y[j, i]) * cos(θ[j] - θ[i])) + V[j]^2 * imag(Y[j, i])
-        @constraint(m, Pji^2 + Qji^2 <= (dLinea.rateA[k] / bMVA)^2)
+            Pji = V[j] * V[i] * (real(Y[j, i]) * cos(θ[j] - θ[i]) - imag(Y[j, i]) * sin(θ[j] - θ[i])) - V[j]^2 * real(Y[j, i])
+            Qji = V[j] * V[i] * (real(Y[j, i]) * sin(θ[j] - θ[i]) + imag(Y[j, i]) * cos(θ[j] - θ[i])) - V[j]^2 * imag(Y[j, i])
+            @constraint(m, Pji^2 + Qji^2 <= (dLinea.rateA[k] / bMVA)^2)
+
+            @constraint(m, deg2rad(dLinea.angmin[k]) <= θ[i] - θ[j] <= deg2rad(dLinea.angmax[k]))
+        end
     end
 
 
@@ -130,8 +126,8 @@ function AC_OPF(dLinea::DataFrame, dGen::DataFrame, dNodos::DataFrame, nN::Int, 
         for k in 1:nL
             i = dLinea.fbus[k]
             j = dLinea.tbus[k]
-            Pij = V[i] * V[j] * (real(Y[i, j]) * cos(θ[i] - θ[j]) + imag(Y[i, j]) * sin(θ[i] - θ[j])) - V[i]^2 * real(Y[i, j])
-            Qij = V[i] * V[j] * (real(Y[i, j]) * sin(θ[i] - θ[j]) - imag(Y[i, j]) * cos(θ[i] - θ[j])) + V[i]^2 * imag(Y[i, j])
+            Pij = V[i] * V[j] * (real(Y[i, j]) * cos(θ[i] - θ[j]) - imag(Y[i, j]) * sin(θ[i] - θ[j])) - V[i]^2 * real(Y[i, j])
+            Qij = V[i] * V[j] * (real(Y[i, j]) * sin(θ[i] - θ[j]) + imag(Y[i, j]) * cos(θ[i] - θ[j])) - V[i]^2 * imag(Y[i, j])
             push!(solFlujos, [i, j, sqrt(value(Pij^2 + Qij^2)) * bMVA])
         end
 

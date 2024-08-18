@@ -1,8 +1,3 @@
-# PENDIENTE:
-# Latex (esquema) - Overleaf
-
-# Explicar en caso de considerar pérdidas
-
 include("./Funciones/gestorDatosLP.jl")
 include("./Funciones/matrizSusceptancia.jl")
 
@@ -17,7 +12,7 @@ function LP_OPF(dLinea::DataFrame, dGen::DataFrame, dNodos::DataFrame, nN::Int, 
     # solver:   Solver a utilizar
 
     ########## GESTIÓN DE DATOS ##########
-    P_Cost0, P_Cost1, P_Cost2, P_Gen_lb, P_Gen_ub, Gen_Status, P_Demand, Conduc_Sh = gestorDatosLP(dGen, dNodos, nN, bMVA)
+    P_Cost0, P_Cost1, P_Cost2, P_Gen_lb, P_Gen_ub, Gen_Status, P_Demand = gestorDatosLP(dGen, dNodos, nN, bMVA)
     
     # Matriz de susceptancias de las líneas
     B = matrizSusceptancia(dLinea, nN, nL)
@@ -68,31 +63,38 @@ function LP_OPF(dLinea::DataFrame, dGen::DataFrame, dNodos::DataFrame, nN::Int, 
 
 
     ########## RESTRICCIONES ##########
-    # Restricción de la relación entre los nodos: PGen[i] - PDem[i] = ∑(B[i,j] · θ[j]))
+    # Restricción de flujo de potencia entre los nodos: PGen[i] - PDem[i] = ∑(B[i,j] · θ[j]))
     # Siendo 
-    # PGen[i] la potencia generada en el nodo i
-    # PDem[i] la potencia demandada en el nodo i
-    # B[i,j] susceptancia de la linea que conecta los nodos i - j
-    # θ[j] ángulo del nodo j
+    #   PGen[i] la potencia generada en el nodo i
+    #   PDem[i] la potencia demandada en el nodo i
+    #   B[i,j] susceptancia de la linea que conecta los nodos i - j
+    #   θ[i] - θ[j] la diferencia de ángulos entre los nodos i - j
     # En la parte izquierda es el balance entre Potencia Generada y Potencia Demandada
     # en caso de ser positivo significa que es un nodo que suministra potencia a la red 
     # y en caso negativo, consume potencia de la red
-    # Y en la parte derecha es la función del flujo de potencia en la red
+    # Y en la parte derecha es la suma del flujo de potencia por un nodo
     @constraint(m, [i in 1:nN], P_G[i] - P_Demand[i] == sum(B[i, j] * (θ[i] - θ[j]) for j in 1:nN))
 
+    # Restricción de diferencia de ángulos máximo entre dos nodos conectados por una línea k
     for k in 1:nL
-        @constraint(m, deg2rad(dLinea.angmin[k]) <= θ[dLinea.fbus[k]] - θ[dLinea.tbus[k]] <= deg2rad(dLinea.angmax[k]))
+        if dLinea.status[k] != 0
+            @constraint(m, deg2rad(dLinea.angmin[k]) <= θ[dLinea.fbus[k]] - θ[dLinea.tbus[k]] <= deg2rad(dLinea.angmax[k]))
+        end
     end
 
-    # Restricción de potencia máxima por la línea
+    # Restricción de potencia máxima por la línea considerando el estado de la línea
     # Siendo la potencia que circula en la linea que conecta los nodos i-j: Pᵢⱼ = Bᵢⱼ·(θᵢ-θⱼ) 
     # Su valor abosoluto debe ser menor que el dato de potencia max en dicha línea "dLinea.rateA"
-    @constraint(m, [i in 1:nL], -dLinea.rateA[i] * dLinea.status[i] / bMVA <= B[dLinea.fbus[i], dLinea.tbus[i]] * (θ[dLinea.fbus[i]] - θ[dLinea.tbus[i]]) <= dLinea.rateA[i] * dLinea.status[i] / bMVA)
+    for i in 1:nL
+        if dLinea.status[i] != 0
+            @constraint(m, -dLinea.rateA[i] / bMVA <= B[dLinea.fbus[i], dLinea.tbus[i]] * (θ[dLinea.fbus[i]] - θ[dLinea.tbus[i]]) <= dLinea.rateA[i] / bMVA)
+        end
+    end
 
-    # Restricción de potencia mínima y máxima de los generadores
+    # Restricción de potencia mínima y máxima de los generadores considerando el estado del generador
     @constraint(m, [i in 1:nN], P_Gen_lb[i] * Gen_Status[i] <= P_G[i] <= P_Gen_ub[i] * Gen_Status[i])
 
-    # Se selecciona el nodo 1 como nodo de refenrecia
+    # Se selecciona un nodo como refenrecia (tipo de nodo = 3)
     # Necesario en caso de HiGHS para evitar un bucle infinito al resolver la optimización
     for i in 1:nrow(dNodos)
         if dNodos.type[i] == 3
@@ -101,7 +103,7 @@ function LP_OPF(dLinea::DataFrame, dGen::DataFrame, dNodos::DataFrame, nN::Int, 
     end
 
     ########## RESOLUCIÓN ##########
-    optimize!(m) # Optimización
+    JuMP.optimize!(m) # Optimización
 
     # Guardar solución en DataFrames en caso de encontrar solución óptima
     if termination_status(m) == OPTIMAL || termination_status(m) == LOCALLY_SOLVED || termination_status(m) == ITERATION_LIMIT

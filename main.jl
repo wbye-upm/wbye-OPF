@@ -7,13 +7,12 @@ include("./Funciones/cargarLibrerias.jl")
 # Se carga las funciones
 include("./Funciones/cargarFunciones.jl")
 
-Logging.disable_logging(Logging.Error)
 
 # Se inicializa el programa con diferentes test
 # principalmente para cargar los solvers y resolver con mayor rapidez el caso pedido por el usuario
-# boot()
+boot()
 
-# Cariable para salir del bucle
+# Variable para salir del bucle
 finPrograma = false
 # En caso de que no sea fin de programa
 while !finPrograma

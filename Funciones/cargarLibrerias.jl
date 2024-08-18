@@ -18,5 +18,3 @@ using CSV               # Gestión de CSV
 using Base.Filesystem   # Sistema de ficheros de la librería de Julia
 using PowerModels       # Paquete creada para resolver OPF directamente del archivo .m
 using PowerPlots        # Mostrar en un gráfica el sistema
-
-using Logging           # Paquete para ajustar los avisos que salen
