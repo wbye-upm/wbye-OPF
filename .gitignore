@@ -39,4 +39,4 @@ Manifest.toml
 # Package compilation
 __precompile__/
 
-cosas_a_hacer.txt
+Plots

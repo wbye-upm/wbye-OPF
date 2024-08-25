@@ -53,15 +53,14 @@ function gestorDatosAC(Generador::DataFrame, Nodo::DataFrame, nn::Int, bMVA::Int
     V_Nodo_ub = SparseArrays.sparsevec(Nodo.bus_i, Nodo.Vmax, nn)
     # V_baseNodo = SparseArrays.sparsevec(Nodo.bus_i, Nodo.baseKV, nn)
 
-    # Conductancia y susceptancia shunt en los nodos
-    # Conduc_Sh = SparseArrays.sparsevec(Nodo.bus_i, Nodo.Gs, nn)
-    # Suscep_Sh = SparseArrays.sparsevec(Nodo.bus_i, Nodo.Bs, nn)
+    P_inicial = SparseArrays.sparsevec(Generador.bus, Generador.Pg, nn)
+    Q_inicial = SparseArrays.sparsevec(Generador.bus, Generador.Qg, nn)
 
     # En los datos de los generadores se tiene en cuenta generadores que no están activos con status = 0
     # Por lo que se crea un sparsevec que contenga estos valores para considerar generadores apagados
     Gen_Status = SparseArrays.sparsevec(Generador.bus, Generador.status, nn)
 
     # Se devuelve como resultado de la función todos los SparseArrays generados
-    return P_Cost0, P_Cost1, P_Cost2, P_Gen_lb, P_Gen_ub, Q_Gen_lb, Q_Gen_ub, P_Demand, Q_Demand, Gs, Bs, V_Nodo_lb, V_Nodo_ub, Gen_Status
+    return P_Cost0, P_Cost1, P_Cost2, P_Gen_lb, P_Gen_ub, Q_Gen_lb, Q_Gen_ub, P_Demand, Q_Demand, Gs, Bs, V_Nodo_lb, V_Nodo_ub, Gen_Status, P_inicial, Q_inicial
 
 end

@@ -1,11 +1,11 @@
 # Esta función gestiona la variable del modelo y los DataFrames de la solución de la Optimización
 
-function gestorResultados(modelo, solGeneradores, solFlujos, solAngulos, rutaM, opfTipo, solver)
+function gestorResultados(modelo, solGeneradores, solFlujos, solTension, rutaM, opfTipo, solver)
 
     # modelo: El modelo que se ha creado para optimizar
     # solGeneradores: DataFrame con la solución de los generadores
     # solFlujos: DataFrame con la solución de los flujos
-    # solAngulos: DataFrame con la solución de los ángulos
+    # solTension: DataFrame con la solución de la tensión (módulo y argumento)
 
     # Limpieza del terminal
     limpiarTerminal()
@@ -88,7 +88,7 @@ function gestorResultados(modelo, solGeneradores, solFlujos, solAngulos, rutaM, 
 
         genFilas = DataFrames.nrow(solGeneradores);
         flFilas = DataFrames.nrow(solFlujos);
-        angFilas = DataFrames.nrow(solAngulos);
+        angFilas = DataFrames.nrow(solTension);
 
         # Asigna el número máximo de filas que se puede mostrar
         nmax = 10
@@ -101,6 +101,8 @@ function gestorResultados(modelo, solGeneradores, solFlujos, solAngulos, rutaM, 
             println("Pulsa la tecla ENTER para confirmar o cualquier otra entrada para negar")
             mostrarTerminal = readline(stdin)
 
+            limpiarTerminal()
+
             # En caso que pulse la tecla ENTER
             if mostrarTerminal == ""
 
@@ -110,7 +112,9 @@ function gestorResultados(modelo, solGeneradores, solFlujos, solAngulos, rutaM, 
                 println("\n\nSolución de los flujos:")
                 DataFrames.show(solFlujos, allrows = true, allcols = true)
                 println("\n\nSolución de los ángulos:")
-                DataFrames.show(solAngulos, allrows = true, allcols = true)
+                DataFrames.show(solTension, allrows = true, allcols = true)
+
+                println("") # Linea de separación
 
             # En caso de que introduzca cualquier otra entrada
             else
@@ -151,7 +155,7 @@ function gestorResultados(modelo, solGeneradores, solFlujos, solAngulos, rutaM, 
             if confirmarGuardarCSV == ""
 
                 # Guarda en los correspondientes ficheros los resultados obtenidos
-                CSV.write("./Resultados/solAngulos.csv", solAngulos, delim = ";")
+                CSV.write("./Resultados/solTension.csv", solTension, delim = ";")
                 CSV.write("./Resultados/solFlujosLineas.csv", solFlujos, delim = ";")
                 CSV.write("./Resultados/solGeneradores.csv", solGeneradores, delim = ";")
                 println("\nEl resultado se ha guardado en ./Resultados")

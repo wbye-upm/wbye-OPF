@@ -122,22 +122,23 @@ function LP_OPF(dLinea::DataFrame, dGen::DataFrame, dNodos::DataFrame, nN::Int, 
         # Pᵢⱼ = Bᵢⱼ · (θᵢ - θⱼ)
         for i in 1:nL
             if value(B[dLinea.fbus[i], dLinea.tbus[i]] * (θ[dLinea.fbus[i]] - θ[dLinea.tbus[i]])) > 0
-                push!(solFlujos, Dict(:fbus => (dLinea.fbus[i]), :tbus => (dLinea.tbus[i]), :flujo => round(value(B[dLinea.fbus[i], dLinea.tbus[i]] * (θ[dLinea.fbus[i]] - θ[dLinea.tbus[i]])) * bMVA, digits = 2)))
+                push!(solFlujos, Dict(:fbus => (dLinea.fbus[i]), :tbus => (dLinea.tbus[i]), :flujo => round(value(B[dLinea.fbus[i], dLinea.tbus[i]] * (θ[dLinea.fbus[i]] - θ[dLinea.tbus[i]])) * bMVA, digits = 3)))
             elseif value(B[dLinea.fbus[i], dLinea.tbus[i]] * (θ[dLinea.fbus[i]] - θ[dLinea.tbus[i]])) != 0
-                push!(solFlujos, Dict(:fbus => (dLinea.tbus[i]), :tbus => (dLinea.fbus[i]), :flujo => round(value(B[dLinea.tbus[i], dLinea.fbus[i]] * (θ[dLinea.tbus[i]] - θ[dLinea.fbus[i]])) * bMVA, digits = 2)))
+                push!(solFlujos, Dict(:fbus => (dLinea.tbus[i]), :tbus => (dLinea.fbus[i]), :flujo => round(value(B[dLinea.tbus[i], dLinea.fbus[i]] * (θ[dLinea.tbus[i]] - θ[dLinea.fbus[i]])) * bMVA, digits = 3)))
             end
         end
 
-        # solAngulos recoge el desfase de la tensión en los nodos
+        # solTension recoge el módulo y el argumento de la tensión
         # Primera columna: nodo
-        # Segunda columna: valor del desfase en grados
-        solAngulos = DataFrames.DataFrame(bus = Int[], anguloGrados = Float64[])
+        # Segunda columna: módulo de la tensión (1)
+        # Tercera columna: valor del desfase en grados
+        solTension = DataFrames.DataFrame(bus = Int[], tensionNodo = Float64[], anguloGrados = Float64[])
         for i in 1:nN
-            push!(solAngulos, Dict(:bus => i, :anguloGrados => round(rad2deg(value(θ[i])), digits = 2)))
+            push!(solTension, Dict(:bus => i, :tensionNodo => 1,:anguloGrados => round(rad2deg(value(θ[i])), digits = 3)))
         end
 
         # Devuelve como solución el modelo "m" y los DataFrames generados de generación, flujos y ángulos
-        return m, solGen, solFlujos, solAngulos
+        return m, solGen, solFlujos, solTension
 
     # En caso de que no se encuentre solución a la optimización, se mostrará en pantalla el error
     else

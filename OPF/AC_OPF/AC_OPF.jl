@@ -14,7 +14,7 @@ function AC_OPF(dLinea::DataFrame, dGen::DataFrame, dNodos::DataFrame, nN::Int, 
 
     ########## GESTIÓN DE DATOS ##########
     # Asignación de los datos con la función "gestorDatosAC"
-    P_Cost0, P_Cost1, P_Cost2, P_Gen_lb, P_Gen_ub, Q_Gen_lb, Q_Gen_ub, P_Demand, Q_Demand, Gs, Bs, V_Nodo_lb, V_Nodo_ub, Gen_Status = gestorDatosAC(dGen, dNodos, nN, bMVA)
+    P_Cost0, P_Cost1, P_Cost2, P_Gen_lb, P_Gen_ub, Q_Gen_lb, Q_Gen_ub, P_Demand, Q_Demand, Gs, Bs, V_Nodo_lb, V_Nodo_ub, Gen_Status, P_inicial, Q_inicial = gestorDatosAC(dGen, dNodos, nN, bMVA)
 
     # Matrices de admitancias
     Y = matrizAdmitancia(dLinea, nN, nL)
@@ -43,8 +43,8 @@ function AC_OPF(dLinea::DataFrame, dGen::DataFrame, dNodos::DataFrame, nN::Int, 
     ########## VARIABLES ##########
     # Asignación de "S_Gen" como variable compleja de la potencia aparente de los generadores de cada nodo
     # Aplicando a la vez las restricciones de mínimo "lower_bound" y máximo "upper_bound" de cada generador
-    @variable(m, P_G[1:nN], start = 0)
-    @variable(m, Q_G[1:nN], start = 0)
+    @variable(m, P_G[i in 1:nN], start = P_inicial[i])
+    @variable(m, Q_G[i in 1:nN], start = Q_inicial[i])
 
     # Asignación de "V" como variable compleja de las tensiones en cada nodo inicializando todos a (1 + j0)V
     @variable(m, V[1:nN], start = 1)
@@ -82,6 +82,7 @@ function AC_OPF(dLinea::DataFrame, dGen::DataFrame, dNodos::DataFrame, nN::Int, 
     # Asignamos el nodo 1 como referencia
     for i in 1:nrow(dNodos)
         if dNodos.type[i] == 3
+            # @constraint(m, V[dNodos.bus_i[i]] == 1) # Esta restricción no se debe usar, pero lo necesitamos para comparar con el caso de validación, de forma que simplifica los cálculos a mano
             @constraint(m, θ[dNodos.bus_i[i]] == 0)
         end
     end
@@ -105,9 +106,8 @@ function AC_OPF(dLinea::DataFrame, dGen::DataFrame, dNodos::DataFrame, nN::Int, 
         end
     end
 
-
     ########## RESOLUCIÓN ##########
-    optimize!(m)    # Optimización
+    JuMP.optimize!(m)    # optimización
 
     # Guardar solución en DataFrames en caso de encontrar solución óptima (global o local) o se ha llegado al máximo de iteraciones en caso de Ipopt
     if termination_status(m) == OPTIMAL || termination_status(m) == LOCALLY_SOLVED || termination_status(m) == ITERATION_LIMIT
@@ -128,18 +128,19 @@ function AC_OPF(dLinea::DataFrame, dGen::DataFrame, dNodos::DataFrame, nN::Int, 
             j = dLinea.tbus[k]
             Pij = V[i] * V[j] * (real(Y[i, j]) * cos(θ[i] - θ[j]) - imag(Y[i, j]) * sin(θ[i] - θ[j])) - V[i]^2 * real(Y[i, j])
             Qij = V[i] * V[j] * (real(Y[i, j]) * sin(θ[i] - θ[j]) + imag(Y[i, j]) * cos(θ[i] - θ[j])) - V[i]^2 * imag(Y[i, j])
-            push!(solFlujos, [i, j, sqrt(value(Pij^2 + Qij^2)) * bMVA])
+            push!(solFlujos, [i, j, round(sqrt(value(Pij^2 + Qij^2)) * bMVA, digits = 3)])
         end
 
-        # solAngulos recoge el desfase de la tensión en los nodos
+        # solTension recoge el módulo y el desfase de la tensión en los nodos
         # Primera columna: nodo
-        # Segunda columna: valor del desfase en grados
-        solAngulos = DataFrames.DataFrame(bus = Int[], anguloGrados = Float64[])
+        # Segunda columna: valor de la tensión en pu
+        # Tercera columna: valor del desfase en grados
+        solTension = DataFrames.DataFrame(bus = Int[], tensionNodo = Float64[], anguloGrados = Float64[])
         for i in 1:nN
-            push!(solAngulos, Dict(:bus => i, :anguloGrados => round(rad2deg(value(θ[i])), digits = 2)))
+            push!(solTension, Dict(:bus => i, :tensionNodo => round(value(V[i]), digits = 3), :anguloGrados => round(rad2deg(value(θ[i])), digits = 3)))
         end
         # Devuelve como solución el modelo "m" y los DataFrames generados de generación, flujos y ángulos
-        return m, solGen, solFlujos, solAngulos
+        return m, solGen, solFlujos, solTension
 
     # En caso de que no se encuentre solución a la optimización, se mostrará en pantalla el error
     else

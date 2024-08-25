@@ -48,10 +48,15 @@ p = powerplot(caso,
     branch_color=["black", "purple","red"],
     gen_color=["black", "purple","red"],
     flow_arrow_size_range=[0, 4000],
-    load_color="#273D94",
-    bus_color="#504F4F",
-    bus_size= 50
+    load_color="blue",
+    bus_color="black",
+    bus_size= 100
 )
+
+p.layer[3]["mark"]["type"]=:point # :circle :square :point
+p.layer[3]["mark"]["shape"]="diamond"
+# "circle", "square", "cross", "diamond", "triangle-up",
+# "triangle-down", "triangle-right", or "triangle-left"
 
 # Asignación del color del vector
 p.layer[1]["layer"][2]["mark"]["color"]=:white
@@ -76,22 +81,25 @@ p.layer[4]["encoding"]["color"]["scale"]["domain"]=[0,100]
 p.layer[4]["encoding"]["color"]["title"]="Gen Utilization %"
 p.layer[4]["encoding"]["size"]=Dict(
     "field"=>"GenPower", "title"=>"Gen Capacity [p.u.]",
-    "type"=>"quantitative", "scale"=>Dict("range"=>[10,250])
+    "type"=>"quantitative", "scale"=>Dict("range"=>[10,500]), # Rango de tamaño de los generadores
 )
+p.layer[4]["mark"]["type"]=:circle # :circle :square :point
 
 # Asignación del tamaño y color de la demanda
 p.layer[5]["encoding"]["size"]=Dict(
     "field"=>"pd", "title"=>"Load Demand [p.u]",
-    "type"=>"quantitative", "scale"=>Dict("range"=>[10,250])
+    "type"=>"quantitative",
+    "scale"=>Dict("range"=>[10,500]) # Rango de tamaño de la demanda
 )
-p.layer[5]["mark"]["type"]=:square
+p.layer[5]["mark"]["type"]=:square # :circle :square :point
 
 # Posición de la leyenda de los colores
 p.layer[1]["layer"][1]["encoding"]["color"]["legend"]=Dict("orient"=>"bottom-right", "offset"=>-30)
+p.layer[5]["encoding"]["color"]["legend"]=Dict("orient"=>"bottom-right")
 p.layer[4]["encoding"]["color"]["legend"]=Dict("orient"=>"bottom-right")
 
-@set! p.resolve.scale.size=:independent
-@set! p.resolve.scale.color=:shared
+@set! p.resolve.scale.size = :independent
+@set! p.resolve.scale.color = :shared
 
 # Llamada al plot para que se muestre
 p

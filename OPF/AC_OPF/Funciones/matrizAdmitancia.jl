@@ -15,8 +15,9 @@ function matrizAdmitancia(datos::DataFrame, nn::Int, nl::Int)
     
     # De los datos de las líneas obtenemos la resistencia "datos.r" y reactancia "datos.x" y se suman en Z = r + jX
     Z = (datos.r .+ im .* datos.x)
+    Y_0 = datos.status ./ Z
     # A partir del valor de los valores de impedancia "Z" se crea el la matriz de admitancias "Y"
-    Y = A * SparseArrays.spdiagm(1 ./ Z .* datos.status) * A'
+    Y = A * SparseArrays.spdiagm(Y_0) * A'
     # Donde spdiagm crea una matriz sin elementos (SparseArray) y asigna los valores de cada "1/Z" en la diagonal principal
 
     # Se devuelve la matriz de admitancia total, la de admitancias de línea y la de admitancias shunt

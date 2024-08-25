@@ -43,11 +43,11 @@ while !finPrograma
     println("\nGenerando OPF...")
     # En caso de un LP-OPF
     if opfTipo == "LP-OPF"
-        m, solGen, solFlujos, solAngulos = LP_OPF(datos[1], datos[2], datos[3], datos[4], datos[5], datos[6], s)
+        m, solGen, solFlujos, solTension = LP_OPF(datos[1], datos[2], datos[3], datos[4], datos[5], datos[6], s)
 
     # En caso de un AC-OPF
     elseif opfTipo == "AC-OPF"
-        m, solGen, solFlujos, solAngulos = AC_OPF(datos[1], datos[2], datos[3], datos[4], datos[5], datos[6], s)
+        m, solGen, solFlujos, solTension = AC_OPF(datos[1], datos[2], datos[3], datos[4], datos[5], datos[6], s)
 
     # Si se llega hasta este punto y no se da ningún caso anterior, devuelve un error
     else
@@ -60,7 +60,7 @@ while !finPrograma
 
     # Gensión de los resultados de optimización
     println("Problema resuelto")
-    gestorResultados(m, solGen, solFlujos, solAngulos, datos[7], opfTipo, s)
+    gestorResultados(m, solGen, solFlujos, solTension, datos[7], opfTipo, s)
 
     # Preguntar al usuario si quiere continuar en el bucle para estudiar otro caso
     println("\nPulsa la tecla ENTER para continuar o cualquier otra entrada para salir.")
