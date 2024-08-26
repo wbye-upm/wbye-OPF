@@ -38,5 +38,3 @@ Manifest.toml
 
 # Package compilation
 __precompile__/
-
-Plots

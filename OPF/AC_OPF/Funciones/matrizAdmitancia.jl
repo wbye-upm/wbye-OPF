@@ -1,4 +1,4 @@
-#### Indicar referencia a Spiros (link) y las diferencias
+# Esta funcion crea la matriz de admitancias Y con los datos de las líneas
 
 function matrizAdmitancia(datos::DataFrame, nn::Int, nl::Int)
 

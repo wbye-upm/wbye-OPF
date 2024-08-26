@@ -5,7 +5,7 @@ function LP_OPF(dLinea::DataFrame, dGen::DataFrame, dNodos::DataFrame, nN::Int, 
 
     # dLinea:   Datos de las líneas
     # dGen:     Datos de los generadores
-    # dNodos:    Datos de la demanda
+    # dNodos:   Datos de la demanda
     # nN:       Número de nodos
     # nL:       Número de líneas
     # bMVA:     Potencia base
@@ -22,7 +22,6 @@ function LP_OPF(dLinea::DataFrame, dGen::DataFrame, dNodos::DataFrame, nN::Int, 
     # Se crea el modelo "m" con la función de JuMP.Model() y tiene como argumento el optimizador usado,
     # en este caso, el solver Gurobi
     if solver == "Gurobi"
-        # Nota Mayo de 2024: se probó modelar la variable binaria on/off de los generadores y funcionaba con Gurobi
         m = Model(Gurobi.Optimizer)
         # Se deshabilita las salidas por defecto que tiene el optimizador
         set_silent(m)

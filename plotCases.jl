@@ -45,16 +45,16 @@ p = powerplot(caso,
     gen_data_type=:quantitative,
     branch_data=:pt,
     branch_data_type=:quantitative,
-    branch_color=["black", "purple","red"],
-    gen_color=["black", "purple","red"],
+    branch_color=["green", "yellow","red"], # Rango de colores de las líneas
+    gen_color=["green", "yellow","red"], # Rango de colores de los generadores
     flow_arrow_size_range=[0, 4000],
-    load_color="blue",
-    bus_color="black",
-    bus_size= 100
+    load_color="blue", # Color de la carga
+    bus_color="purple", # Color de los nodos
+    bus_size= 50
 )
 
 p.layer[3]["mark"]["type"]=:point # :circle :square :point
-p.layer[3]["mark"]["shape"]="diamond"
+p.layer[3]["mark"]["shape"]="triangle-down" # Solo se puede usar si type = :point
 # "circle", "square", "cross", "diamond", "triangle-up",
 # "triangle-down", "triangle-right", or "triangle-left"
 
@@ -68,7 +68,7 @@ p.layer[1]["transform"] = Dict{String, Any}[
     Dict("calculate"=>"abs(datum.pt)", "as"=>"BranchPower")
 ]
 p.layer[1]["layer"][1]["encoding"]["color"]["field"]="branch_Percent_Loading"
-p.layer[1]["layer"][1]["encoding"]["color"]["title"]="Branch Utilization %"
+p.layer[1]["layer"][1]["encoding"]["color"]["title"]="Carga de la línea [%]"
 p.layer[1]["layer"][1]["encoding"]["color"]["scale"]["domain"]=[0,100]
 
 # Asignación del tamaño y color de los generadores
@@ -78,28 +78,29 @@ p.layer[4]["transform"] = Dict{String, Any}[
 ]
 p.layer[4]["encoding"]["color"]["field"]="gen_Percent_Loading"
 p.layer[4]["encoding"]["color"]["scale"]["domain"]=[0,100]
-p.layer[4]["encoding"]["color"]["title"]="Gen Utilization %"
+p.layer[4]["encoding"]["color"]["title"]="Factor de carga [%]"
 p.layer[4]["encoding"]["size"]=Dict(
-    "field"=>"GenPower", "title"=>"Gen Capacity [p.u.]",
-    "type"=>"quantitative", "scale"=>Dict("range"=>[10,500]), # Rango de tamaño de los generadores
+    "field"=>"GenPower", "title"=>"Potencia máx gen [pu]",
+    "type"=>"quantitative", "scale"=>Dict("range"=>[10,200]), # Rango de tamaño de los generadores
 )
 p.layer[4]["mark"]["type"]=:circle # :circle :square :point
 
 # Asignación del tamaño y color de la demanda
 p.layer[5]["encoding"]["size"]=Dict(
-    "field"=>"pd", "title"=>"Load Demand [p.u]",
+    "field"=>"pd", "title"=>"Demanda [pu]",
     "type"=>"quantitative",
-    "scale"=>Dict("range"=>[10,500]) # Rango de tamaño de la demanda
+    "scale"=>Dict("range"=>[10,200]) # Rango de tamaño de la demanda
 )
 p.layer[5]["mark"]["type"]=:square # :circle :square :point
 
 # Posición de la leyenda de los colores
-p.layer[1]["layer"][1]["encoding"]["color"]["legend"]=Dict("orient"=>"bottom-right", "offset"=>-30)
-p.layer[5]["encoding"]["color"]["legend"]=Dict("orient"=>"bottom-right")
+p.layer[1]["layer"][1]["encoding"]["color"]["legend"]=Dict("orient"=>"bottom-right", "offset"=>-50)
 p.layer[4]["encoding"]["color"]["legend"]=Dict("orient"=>"bottom-right")
+p.layer[5]["encoding"]["color"]["legend"]=Dict("orient"=>"bottom-right")
 
 @set! p.resolve.scale.size = :independent
 @set! p.resolve.scale.color = :shared
+@set! p.encoding.color=Dict("legend"=>Dict("orient"=>"bottom"))
 
 # Llamada al plot para que se muestre
 p

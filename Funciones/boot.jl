@@ -1,4 +1,4 @@
-# Esta función inicializa todos los solvers para que las próximas veces sean más rápidas
+# Esta función precompila todos los solvers para que ya estén cargados durante la ejecución del caso
 
 function boot()
 
@@ -26,6 +26,8 @@ function boot()
     println("Test 2 - Completado")
     println("Test 3...")
     LP_OPF(test_linea, test_generador, test_nodos, 2, 1, 100, "Ipopt")
+    rutaM = ".\\sistema_test\\sistema_test.m"
+    solve_opf(rutaM, DCMPPowerModel, Ipopt.Optimizer)
 
     limpiarTerminal()
 
