@@ -4517,7 +4517,7 @@
             "color": {
               "field": "branch_Percent_Loading",
               "type": "quantitative",
-              "title": "Carga de la línea [%]",
+              "title": "Carga de línea [%]",
               "scale": {
                 "range": ["green", "yellow", "red"],
                 "domain": [0, 100]
@@ -5919,7 +5919,7 @@
         "color": {
           "field": "ComponentType",
           "type": "nominal",
-          "title": "Connector",
+          "title": "Líneas",
           "scale": {"range": ["gray"]}
         }
       }
@@ -8627,7 +8627,7 @@
         "color": {
           "field": "ComponentType",
           "type": "nominal",
-          "title": "Bus",
+          "title": "Nodos",
           "scale": {"range": ["purple"]}
         }
       }
@@ -9109,12 +9109,12 @@
           "field": "GenPower",
           "title": "Potencia máx gen [pu]",
           "type": "quantitative",
-          "scale": {"range": [10, 200]}
+          "scale": {"range": [10, 250]}
         },
         "color": {
           "field": "gen_Percent_Loading",
           "type": "quantitative",
-          "title": "Factor de carga [%]",
+          "title": "Carga de generador [%]",
           "scale": {"range": ["green", "yellow", "red"], "domain": [0, 100]},
           "legend": {"orient": "bottom-right"}
         }
@@ -10284,12 +10284,12 @@
           "field": "pd",
           "title": "Demanda [pu]",
           "type": "quantitative",
-          "scale": {"range": [10, 200]}
+          "scale": {"range": [10, 250]}
         },
         "color": {
           "field": "ComponentType",
           "type": "nominal",
-          "title": "Load",
+          "title": "Demanda",
           "scale": {"range": ["blue"]},
           "legend": {"orient": "bottom-right"}
         }

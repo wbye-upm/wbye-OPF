@@ -16,7 +16,7 @@ function boot()
 
     limpiarTerminal()
 
-    println("Test1 - Completado")
+    println("Test 1 - Completado")
     println("Test 2...")
     LP_OPF(test_linea, test_generador, test_nodos, 2, 1, 100, "HiGHS")
 
@@ -26,7 +26,7 @@ function boot()
     println("Test 2 - Completado")
     println("Test 3...")
     LP_OPF(test_linea, test_generador, test_nodos, 2, 1, 100, "Ipopt")
-    rutaM = ".\\sistema_test\\sistema_test.m"
+    rutaM = "Funciones/sistema_test/sistema_test.m"
     solve_opf(rutaM, DCMPPowerModel, Ipopt.Optimizer)
 
     limpiarTerminal()
