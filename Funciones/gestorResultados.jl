@@ -131,12 +131,13 @@ function gestorResultados(modelo, solGeneradores, solFlujos, solTension, rutaM, 
         # Se imprime la solución obtenida en caso de utilizar el paquete PowerModels.jl
         # En caso que exista el archivo .m
         if solucion != 0
-            print("\nCoste final obtenido en PowerModels: ", round(solucion["objective"], digits = 2), "€/h")
+            println("Coste final obtenido en PowerModels: ", round(solucion["objective"], digits = 2), "€/h")
+            println("Tiempo de ejecución del programa: ", solucion["solve_time"] * 1000, " ms")
         end
 
         # Imprime en pantalla el coste final que se obtiene tras la optimización
         println("\nCoste final con el programa: ", round(objective_value(modelo), digits = 2), " €/h")
-
+        println("Tiempo de ejecución del programa: ", solve_time(modelo) * 1000, " ms")
         # Pregunta al usuario si quiere guardar los datos en un CSV
         println("\n¿Quiere guardar el resultado en un archivo CSV?")
         println("Pulsa la tecla ENTER para confirmar o cualquier otra entrada para negar")
