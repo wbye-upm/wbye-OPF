@@ -19,8 +19,8 @@ function LP_OPF(dLinea::DataFrame, dGen::DataFrame, dNodos::DataFrame, nN::Int, 
     
 
     ########## INICIALIZAR MODELO ##########
-    # Se crea el modelo "m" con la función de JuMP.Model() y tiene como argumento el optimizador usado,
-    # en este caso, el solver Gurobi
+    # Se crea el modelo "m" con la función de JuMP.Model() y
+    # tiene como argumento el optimizador usado, en este caso, el solver Gurobi
     if solver == "Gurobi"
         m = Model(Gurobi.Optimizer)
         # Se deshabilita las salidas por defecto que tiene el optimizador
@@ -62,27 +62,27 @@ function LP_OPF(dLinea::DataFrame, dGen::DataFrame, dNodos::DataFrame, nN::Int, 
 
 
     ########## RESTRICCIONES ##########
-    # Restricción de flujo de potencia entre los nodos: PGen[i] - PDem[i] = ∑(B[i,j] · θ[j]))
+    # Restricción de flujo de potencia entre los nodos: P_G[i] - P_Demand[i] = ∑(B[i,j] · (θ[i] - θ[j]))
     # Siendo 
-    #   PGen[i] la potencia generada en el nodo i
-    #   PDem[i] la potencia demandada en el nodo i
+    #   P_G[i] la potencia generada en el nodo i
+    #   P_Demand[i] la potencia demandada en el nodo i
     #   B[i,j] susceptancia de la linea que conecta los nodos i - j
     #   θ[i] - θ[j] la diferencia de ángulos entre los nodos i - j
     # En la parte izquierda es el balance entre Potencia Generada y Potencia Demandada
     # en caso de ser positivo significa que es un nodo que suministra potencia a la red 
     # y en caso negativo, consume potencia de la red
-    # Y en la parte derecha es la suma del flujo de potencia por un nodo
+    # Y en la parte derecha es el sumatorio de todos los flujos que pasan por el nodo
     @constraint(m, [i in 1:nN], P_G[i] - P_Demand[i] == sum(B[i, j] * (θ[i] - θ[j]) for j in 1:nN))
 
-    # Restricción de diferencia de ángulos máximo entre dos nodos conectados por una línea k
+    # Diferencia de ángulos máximo entre dos nodos conectados por una línea k
     for k in 1:nL
         if dLinea.status[k] != 0
             @constraint(m, deg2rad(dLinea.angmin[k]) <= θ[dLinea.fbus[k]] - θ[dLinea.tbus[k]] <= deg2rad(dLinea.angmax[k]))
         end
     end
 
-    # Restricción de potencia máxima por la línea considerando el estado de la línea
-    # Siendo la potencia que circula en la linea que conecta los nodos i-j: Pᵢⱼ = Bᵢⱼ·(θᵢ-θⱼ) 
+    # Potencia máxima por las líneas considerando el estado de la línea
+    # La potencia que circula en la linea que conecta los nodos i-j: Pᵢⱼ = Bᵢⱼ·(θᵢ-θⱼ) 
     # Su valor abosoluto debe ser menor que el dato de potencia max en dicha línea "dLinea.rateA"
     for i in 1:nL
         if dLinea.status[i] != 0
@@ -90,7 +90,7 @@ function LP_OPF(dLinea::DataFrame, dGen::DataFrame, dNodos::DataFrame, nN::Int, 
         end
     end
 
-    # Restricción de potencia mínima y máxima de los generadores considerando el estado del generador
+    # Potencia mínima y máxima de los generadores considerando el estado del generador
     @constraint(m, [i in 1:nN], P_Gen_lb[i] * Gen_Status[i] <= P_G[i] <= P_Gen_ub[i] * Gen_Status[i])
 
     # Se selecciona un nodo como refenrecia (tipo de nodo = 3)

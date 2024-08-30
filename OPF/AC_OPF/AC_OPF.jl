@@ -60,26 +60,23 @@ function AC_OPF(dLinea::DataFrame, dGen::DataFrame, dNodos::DataFrame, nN::Int, 
 
 
     ########## RESTRICCIONES ##########
+    # Generación mínima y máxima de cada generador
     @constraint(m, [i in 1:nN], P_Gen_lb[i] * Gen_Status[i] <= P_G[i] <= P_Gen_ub[i] * Gen_Status[i])
     @constraint(m, [i in 1:nN], Q_Gen_lb[i] * Gen_Status[i] <= Q_G[i] <= Q_Gen_ub[i] * Gen_Status[i])
 
+    # Límites inferior y superior del módulo de tensión
     @constraint(m, [i in 1:nN], V_Nodo_lb[i] <= V[i] <= V_Nodo_ub[i])
 
-    # Restricción de la relación entre los nodos: S_Gen - S_Demand = V * conj(Y * V)
-    # Siendo 
-    #   S_Gen         Potencia aparente generada
-    #   S_Demand      Potencia aparente demandada
-    #   V             Tensión
-    #   conj(Y * V)   Corriente
+    # Potencia en cada nodo:
     # En la parte izquierda es el balance entre Potencia Generada y Potencia Demandada
     # en caso de ser positivo significa que es un nodo que suministra potencia a la red 
     # y en caso negativo, consume potencia de la red
-    # Y en la parte derecha es la función del flujo de potencia en la red
+    # Y en la parte derecha es el sumatorio de todos los flujos que pasan por el nodo
     @constraint(m, [i in 1:nN], P_G[i] - P_Demand[i] == V[i] * sum(V[j] * (real(Y[i, j]) * cos(θ[i] - θ[j]) + imag(Y[i, j]) * sin(θ[i] - θ[j])) for j in 1:nN) + Gs[i])
     @constraint(m, [i in 1:nN], Q_G[i] - Q_Demand[i] == V[i] * sum(V[j] * (real(Y[i, j]) * sin(θ[i] - θ[j]) - imag(Y[i, j]) * cos(θ[i] - θ[j])) for j in 1:nN) - Bs[i])
 
 
-    # Asignamos el nodo 1 como referencia
+    # Asignamos un nodo como nodo de referencia (nodo tipo 3 en los datos)
     for i in 1:nrow(dNodos)
         if dNodos.type[i] == 3
             # @constraint(m, V[dNodos.bus_i[i]] == 1) # Esta restricción no se debe usar, pero lo necesitamos para comparar con el caso de validación, de forma que simplifica los cálculos a mano
@@ -88,7 +85,7 @@ function AC_OPF(dLinea::DataFrame, dGen::DataFrame, dNodos::DataFrame, nN::Int, 
     end
 
 
-    # Restricción de potencia máxima por línea
+    # Potencia máxima por las línea
     for k in 1:nL
         if dLinea.status[k] != 0
             i = dLinea.fbus[k]

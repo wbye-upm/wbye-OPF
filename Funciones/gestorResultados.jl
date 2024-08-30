@@ -124,7 +124,7 @@ function gestorResultados(modelo, solGeneradores, solFlujos, solTension, rutaM, 
         
         # En caso de que se supere el máximo de filas en alguno de los DataFrames
         else
-            println("\nLas tablas son demasiado grandes para imprimir por el terminal")
+            println("Las tablas son demasiado grandes para imprimir por el terminal")
 
         end
 
