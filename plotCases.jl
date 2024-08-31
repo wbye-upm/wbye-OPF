@@ -27,6 +27,8 @@ listaCasos = readdir("Casos")
 # Se carga la lista y el nombre a la función de elegir opción
 casoEst = elegirOpcion(listaCasos, "caso")
 
+limpiarTerminal()
+
 # Se elimina la parte inicial del caso "pglib_opf_" y se mantiene el resto
 nombreCaso = casoEst[11:end]
 
