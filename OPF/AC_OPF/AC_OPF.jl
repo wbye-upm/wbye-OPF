@@ -72,8 +72,8 @@ function AC_OPF(dLinea::DataFrame, dGen::DataFrame, dNodos::DataFrame, nN::Int, 
     # en caso de ser positivo significa que es un nodo que suministra potencia a la red 
     # y en caso negativo, consume potencia de la red
     # Y en la parte derecha es el sumatorio de todos los flujos que pasan por el nodo
-    @constraint(m, [i in 1:nN], P_G[i] - P_Demand[i] == V[i] * sum(V[j] * (real(Y[i, j]) * cos(θ[i] - θ[j]) + imag(Y[i, j]) * sin(θ[i] - θ[j])) for j in 1:nN) + Gs[i])
-    @constraint(m, [i in 1:nN], Q_G[i] - Q_Demand[i] == V[i] * sum(V[j] * (real(Y[i, j]) * sin(θ[i] - θ[j]) - imag(Y[i, j]) * cos(θ[i] - θ[j])) for j in 1:nN) - Bs[i])
+    @constraint(m, [i in 1:nN], P_G[i] - P_Demand[i] == V[i] * sum(V[j] * (real(Y[i, j]) * cos(θ[i] - θ[j]) - imag(Y[i, j]) * sin(θ[i] - θ[j])) for j in 1:nN) + Gs[i])
+    @constraint(m, [i in 1:nN], Q_G[i] - Q_Demand[i] == V[i] * sum(V[j] * (real(Y[i, j]) * sin(θ[i] - θ[j]) + imag(Y[i, j]) * cos(θ[i] - θ[j])) for j in 1:nN) + Bs[i])
 
 
     # Asignamos un nodo como nodo de referencia (nodo tipo 3 en los datos)
